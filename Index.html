@@ -1,0 +1,1159 @@
+<!-- Lapor Progres SE2026 — BPS Kabupaten Buleleng -->
+<!-- Single-page: CSS & JS inline. Mobile-first, siap dijalankan sebagai GAS Web App. -->
+<style>
+  /* ============ Design tokens (light) ============ */
+  :root {
+    color-scheme: light;
+    --bg:        #eef2f7;   /* page plane, biru-abu dingin */
+    --surface:   #ffffff;   /* kartu */
+    --surface-2: #f6f8fc;   /* input, header tabel */
+    --ink:       #12233b;   /* teks utama, navy */
+    --ink-2:     #51617a;   /* teks sekunder */
+    --muted:     #8a98ad;   /* label, axis */
+    --border:    #dce3ed;   /* garis tipis */
+    --border-2:  #eef1f6;
+    --accent:      #134e8e; /* biru institusi BPS */
+    --accent-ink:  #ffffff;
+    --accent-soft: #e7f0fa;
+    --accent-2:    #2f6bb0; /* biru terang untuk chart kumulatif */
+    /* Status pendataan (semantik, tetap di kedua tema) */
+    --st-open:     #e8912b;
+    --st-submit:   #3b82c4;
+    --st-reject:   #d64545;
+    --st-approved: #1e9e57;
+    --st-open-bg:     #fdf0dd;
+    --st-submit-bg:   #e5eefa;
+    --st-reject-bg:   #fbe4e4;
+    --st-approved-bg: #dcf3e6;
+    --ok:   #1e9e57;
+    --warn: #e8912b;
+    --shadow: 0 1px 2px rgba(18,35,59,.06), 0 6px 20px rgba(18,35,59,.06);
+    --radius: 14px;
+    --radius-sm: 10px;
+    --appbar-h: 56px;
+    --nav-h: 62px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg:        #0d1420;
+      --surface:   #16202f;
+      --surface-2: #1c2838;
+      --ink:       #eaf0f8;
+      --ink-2:     #a9b7cb;
+      --muted:     #7c8aa0;
+      --border:    #263346;
+      --border-2:  #1f2b3c;
+      --accent:      #4f93de;
+      --accent-ink:  #08131f;
+      --accent-soft: #17324f;
+      --accent-2:    #6ba9e8;
+      --st-open-bg:     #3a2c14;
+      --st-submit-bg:   #142c45;
+      --st-reject-bg:   #3c1b1b;
+      --st-approved-bg: #133528;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg:        #0d1420;
+    --surface:   #16202f;
+    --surface-2: #1c2838;
+    --ink:       #eaf0f8;
+    --ink-2:     #a9b7cb;
+    --muted:     #7c8aa0;
+    --border:    #263346;
+    --border-2:  #1f2b3c;
+    --accent:      #4f93de;
+    --accent-ink:  #08131f;
+    --accent-soft: #17324f;
+    --accent-2:    #6ba9e8;
+    --st-open-bg:     #3a2c14;
+    --st-submit-bg:   #142c45;
+    --st-reject-bg:   #3c1b1b;
+    --st-approved-bg: #133528;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
+  }
+
+  /* ============ Base ============ */
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    font-size: 15px;
+    line-height: 1.45;
+    -webkit-tap-highlight-color: transparent;
+    padding-top: var(--appbar-h);
+    padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px));
+  }
+  .tnum { font-variant-numeric: tabular-nums; }
+  h1, h2, h3 { margin: 0; text-wrap: balance; }
+  button { font-family: inherit; cursor: pointer; }
+  a { color: var(--accent); }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+
+  /* ============ App bar ============ */
+  .appbar {
+    position: fixed; top: 0; left: 0; right: 0; height: var(--appbar-h); z-index: 40;
+    display: flex; align-items: center; gap: 10px; padding: 0 14px;
+    background: color-mix(in srgb, var(--surface) 88%, transparent);
+    backdrop-filter: saturate(1.4) blur(10px);
+    border-bottom: 1px solid var(--border);
+  }
+  .brand-mark {
+    width: 34px; height: 34px; border-radius: 9px; flex: none;
+    background: linear-gradient(145deg, var(--accent), color-mix(in srgb, var(--accent) 70%, #000));
+    color: var(--accent-ink); display: grid; place-items: center;
+    font-weight: 800; font-size: 12px; letter-spacing: .5px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.25);
+  }
+  .brand-txt { display: flex; flex-direction: column; line-height: 1.05; min-width: 0; }
+  .brand-txt b { font-size: 14.5px; letter-spacing: -.2px; }
+  .brand-txt span { font-size: 11px; color: var(--muted); }
+  .appbar .spacer { flex: 1; }
+  .icon-btn {
+    width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--border);
+    background: var(--surface); color: var(--ink-2); display: grid; place-items: center; font-size: 17px;
+  }
+  .icon-btn:active { transform: scale(.94); }
+
+  /* ============ Layout ============ */
+  .page { display: none; max-width: 760px; margin: 0 auto; padding: 14px 14px 24px; }
+  .page.active { display: block; animation: fade .25s ease; }
+  @keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { .page.active { animation: none; } * { transition: none !important; } }
+
+  .section-title { font-size: 12px; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); font-weight: 700; margin: 4px 2px 10px; }
+
+  /* ============ Filter panel ============ */
+  .filter-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 14px; overflow: hidden; }
+  .filter-head { display: flex; align-items: center; gap: 10px; padding: 13px 15px; width: 100%; border: 0; background: transparent; color: var(--ink); text-align: left; }
+  .filter-head .ic { font-size: 16px; }
+  .filter-head b { font-size: 14.5px; }
+  .filter-head .count { margin-left: auto; font-size: 12px; color: var(--accent); background: var(--accent-soft); padding: 2px 9px; border-radius: 999px; font-weight: 700; }
+  .filter-head .chev { color: var(--muted); transition: transform .2s; }
+  .filter-card.open .filter-head .chev { transform: rotate(180deg); }
+  .filter-body { display: none; padding: 4px 15px 15px; }
+  .filter-card.open .filter-body { display: block; }
+  .field { margin-bottom: 11px; }
+  .field:last-child { margin-bottom: 0; }
+  .field label { display: block; font-size: 11.5px; font-weight: 700; color: var(--ink-2); margin-bottom: 5px; letter-spacing: .2px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; }
+  select, input[type="number"], input[type="text"], input[type="search"] {
+    width: 100%; height: 44px; padding: 0 12px; font-size: 15px; font-family: inherit;
+    color: var(--ink); background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); appearance: none;
+  }
+  select {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238a98ad' stroke-width='2.4' stroke-linecap='round'><path d='M6 9l6 6 6-6'/></svg>");
+    background-repeat: no-repeat; background-position: right 11px center; padding-right: 36px;
+  }
+  select:focus, input:focus { border-color: var(--accent); background: var(--surface); outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent); }
+  .filter-actions { display: flex; gap: 10px; margin-top: 13px; }
+  .btn { height: 44px; padding: 0 16px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface-2); color: var(--ink); font-weight: 600; font-size: 14px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; }
+  .btn:active { transform: scale(.98); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .btn.ghost { background: transparent; }
+  .btn:disabled { opacity: .55; pointer-events: none; }
+  .btn.block { width: 100%; }
+
+  .result-meta { display: flex; align-items: baseline; justify-content: space-between; margin: 2px 2px 10px; }
+  .result-meta b { font-size: 15px; }
+  .result-meta span { font-size: 12.5px; color: var(--muted); }
+
+  /* ============ Kartu subSLS ============ */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 12px; overflow: hidden; }
+  .card-head { display: flex; gap: 12px; padding: 13px 14px; align-items: flex-start; width: 100%; border: 0; background: transparent; text-align: left; color: inherit; }
+  .thumb { width: 52px; height: 52px; border-radius: 10px; flex: none; object-fit: cover; background: var(--surface-2); border: 1px solid var(--border); display: grid; place-items: center; color: var(--muted); font-size: 18px; overflow: hidden; }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .card-main { flex: 1; min-width: 0; }
+  .card-title { font-size: 15px; font-weight: 700; letter-spacing: -.2px; }
+  .card-sub { font-size: 12px; color: var(--muted); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .petugas { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 6px; font-size: 11.5px; color: var(--ink-2); }
+  .petugas span b { color: var(--muted); font-weight: 600; }
+  .pills { display: flex; gap: 6px; margin-top: 9px; flex-wrap: wrap; }
+  .pill { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 999px; }
+  .pill .dot { width: 7px; height: 7px; border-radius: 50%; }
+  .pill.open     { background: var(--st-open-bg); color: var(--st-open); }
+  .pill.submit   { background: var(--st-submit-bg); color: var(--st-submit); }
+  .pill.reject   { background: var(--st-reject-bg); color: var(--st-reject); }
+  .pill.approved { background: var(--st-approved-bg); color: var(--st-approved); }
+  .pill.open .dot { background: var(--st-open); }
+  .pill.submit .dot { background: var(--st-submit); }
+  .pill.reject .dot { background: var(--st-reject); }
+  .pill.approved .dot { background: var(--st-approved); }
+  .card-aside { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex: none; }
+  .updated { font-size: 10.5px; color: var(--muted); white-space: nowrap; }
+  .chev-c { color: var(--muted); transition: transform .2s; font-size: 15px; }
+  .card.open .chev-c { transform: rotate(180deg); }
+
+  /* Form dalam kartu */
+  .card-form { display: none; border-top: 1px solid var(--border-2); padding: 14px; background: var(--surface-2); }
+  .card.open .card-form { display: block; animation: fade .2s ease; }
+  .num-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; }
+  .num-field label { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; margin-bottom: 5px; }
+  .num-field label .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .num-field input { background: var(--surface); }
+  .photo-row { margin-top: 13px; }
+  .photo-drop { display: flex; align-items: center; gap: 12px; border: 1.5px dashed var(--border); border-radius: var(--radius-sm); padding: 12px; background: var(--surface); }
+  .photo-drop .prev { width: 60px; height: 60px; border-radius: 9px; object-fit: cover; background: var(--surface-2); border: 1px solid var(--border); flex: none; display: grid; place-items: center; color: var(--muted); overflow: hidden; }
+  .photo-drop .prev img { width: 100%; height: 100%; object-fit: cover; }
+  .photo-drop .meta { flex: 1; min-width: 0; }
+  .photo-drop .meta b { font-size: 13px; }
+  .photo-drop .meta p { margin: 2px 0 0; font-size: 11.5px; color: var(--muted); }
+  .file-btn { position: relative; overflow: hidden; }
+  .file-btn input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .photo-btns { display: flex; gap: 8px; margin-top: 9px; flex-wrap: wrap; }
+  .btn.sm { height: 36px; padding: 0 12px; font-size: 13px; }
+  .form-actions { display: flex; gap: 10px; margin-top: 14px; }
+  .hint-err { color: var(--st-reject); font-size: 12px; margin-top: 8px; display: none; }
+  .zoomable { cursor: zoom-in; }
+  .img-broken { display: grid; place-items: center; width: 100%; height: 100%; color: var(--muted); font-size: 16px; }
+
+  /* Lightbox pratinjau foto */
+  .lightbox { position: fixed; inset: 0; z-index: 80; display: none; background: rgba(6,12,20,.92); }
+  .lightbox.on { display: grid; place-items: center; animation: fade .2s ease; }
+  .lightbox .lb-stage { max-width: 96vw; max-height: 86vh; overflow: auto; -webkit-overflow-scrolling: touch; border-radius: 10px; }
+  .lightbox img { display: block; max-width: 96vw; max-height: 86vh; object-fit: contain; }
+  .lightbox .lb-close { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 12px); right: 14px; width: 44px; height: 44px; border-radius: 50%; border: 0; background: rgba(255,255,255,.16); color: #fff; font-size: 20px; backdrop-filter: blur(6px); }
+  .lightbox .lb-hint { position: absolute; bottom: calc(env(safe-area-inset-bottom, 0px) + 16px); left: 0; right: 0; text-align: center; color: rgba(255,255,255,.7); font-size: 12px; }
+  .lightbox .lb-spin { position: absolute; color: rgba(255,255,255,.8); font-size: 13px; }
+
+  /* ============ Dashboard ============ */
+  .kpi-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 11px; margin-bottom: 16px; }
+  .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 13px 14px; box-shadow: var(--shadow); }
+  .kpi .lbl { font-size: 11.5px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .5px; }
+  .kpi .val { font-size: 27px; font-weight: 800; letter-spacing: -1px; margin-top: 3px; }
+  .kpi .sub { font-size: 11.5px; color: var(--ink-2); margin-top: 2px; }
+  .kpi.accent .val { color: var(--accent); }
+  .kpi.ok .val { color: var(--st-approved); }
+  .kpi.warn .val { color: var(--st-open); }
+
+  .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 15px; margin-bottom: 16px; }
+  .chart-card h3 { font-size: 15px; letter-spacing: -.2px; }
+  .chart-card .cap { font-size: 12px; color: var(--muted); margin: 3px 0 12px; }
+  .chart-wrap { position: relative; height: 250px; }
+  .chart-wrap.donut { height: 230px; }
+
+  /* Tabel rekap */
+  .table-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+  .table-card .tc-head { padding: 15px 15px 12px; }
+  .tabs { display: flex; gap: 6px; overflow-x: auto; padding: 0 15px 12px; scrollbar-width: none; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab { flex: none; height: 34px; padding: 0 13px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface-2); color: var(--ink-2); font-size: 13px; font-weight: 600; white-space: nowrap; }
+  .tab.active { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .search-row { padding: 0 15px 13px; position: relative; }
+  .search-row .si { position: absolute; left: 26px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 15px; pointer-events: none; }
+  .search-row input { padding-left: 38px; }
+  .table-scroll { overflow-x: auto; border-top: 1px solid var(--border-2); -webkit-overflow-scrolling: touch; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  thead th { position: sticky; top: 0; background: var(--surface-2); color: var(--ink-2); font-weight: 700; text-align: right; padding: 10px 12px; white-space: nowrap; border-bottom: 1px solid var(--border); font-size: 11.5px; text-transform: uppercase; letter-spacing: .3px; }
+  thead th.idc, tbody td.idc { text-align: left; }
+  tbody td { padding: 10px 12px; border-bottom: 1px solid var(--border-2); white-space: nowrap; text-align: right; }
+  tbody td.idc { font-weight: 600; color: var(--ink); }
+  tbody td.num { font-variant-numeric: tabular-nums; color: var(--ink-2); }
+  /* Kolom pertama sticky */
+  th.stick, td.stick { position: sticky; left: 0; z-index: 2; background: var(--surface); box-shadow: 1px 0 0 var(--border); }
+  thead th.stick { z-index: 3; background: var(--surface-2); }
+  tbody tr:nth-child(even) td { background: color-mix(in srgb, var(--surface-2) 55%, var(--surface)); }
+  tbody tr:nth-child(even) td.stick { background: color-mix(in srgb, var(--surface-2) 55%, var(--surface)); }
+  tbody td .mini { display: inline-flex; align-items: center; gap: 5px; justify-content: flex-end; }
+  tbody td .mini .dot { width: 7px; height: 7px; border-radius: 50%; }
+  tfoot td { padding: 11px 12px; font-weight: 800; border-top: 2px solid var(--border); background: var(--surface-2); text-align: right; font-variant-numeric: tabular-nums; }
+  tfoot td.stick { text-align: left; background: var(--surface-2); }
+  .tbl-empty { padding: 26px 16px; text-align: center; color: var(--muted); font-size: 13.5px; }
+
+  /* ============ Bottom nav ============ */
+  .bottom-nav {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; height: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px));
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    display: flex; background: color-mix(in srgb, var(--surface) 90%, transparent);
+    backdrop-filter: saturate(1.4) blur(10px); border-top: 1px solid var(--border);
+  }
+  .nav-item { flex: 1; border: 0; background: transparent; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; color: var(--muted); font-size: 11px; font-weight: 600; min-height: 44px; }
+  .nav-item .ni-ic { font-size: 21px; line-height: 1; }
+  .nav-item.active { color: var(--accent); }
+  .nav-item.active .ni-ic { transform: translateY(-1px); }
+
+  /* ============ Toast & loading ============ */
+  .toast-wrap { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(var(--nav-h) + 16px); z-index: 60; display: flex; flex-direction: column; gap: 8px; width: min(92vw, 420px); }
+  .toast { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 12px; background: var(--ink); color: #fff; font-size: 13.5px; font-weight: 500; box-shadow: 0 10px 30px rgba(0,0,0,.28); animation: toastIn .25s ease; }
+  .toast.ok  { background: #12603a; }
+  .toast.err { background: #8f2323; }
+  .toast .ti { font-size: 16px; }
+  @keyframes toastIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+  .loading-bar { position: fixed; top: var(--appbar-h); left: 0; right: 0; height: 3px; z-index: 50; overflow: hidden; display: none; }
+  .loading-bar.on { display: block; }
+  .loading-bar::before { content: ""; position: absolute; inset: 0; width: 40%; background: var(--accent); animation: slide 1.1s ease-in-out infinite; }
+  @keyframes slide { 0% { left: -40%; } 100% { left: 100%; } }
+
+  .empty-state { text-align: center; padding: 40px 20px; color: var(--muted); }
+  .empty-state .es-ic { font-size: 34px; }
+  .empty-state p { margin: 10px 0 0; font-size: 14px; }
+  .spinner { width: 15px; height: 15px; border: 2px solid rgba(255,255,255,.4); border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; }
+  .btn .spinner { border-color: color-mix(in srgb, var(--accent-ink) 40%, transparent); border-top-color: var(--accent-ink); }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+
+<!-- ============ App bar ============ -->
+<header class="appbar">
+  <div class="brand-mark">SE</div>
+  <div class="brand-txt">
+    <b>Lapor Progres SE2026</b>
+    <span>BPS Kabupaten Buleleng</span>
+  </div>
+  <div class="spacer"></div>
+  <button class="icon-btn" id="themeBtn" aria-label="Ganti tema" title="Ganti tema">◐</button>
+</header>
+<div class="loading-bar" id="loadingBar"></div>
+
+<!-- ============ Halaman 1: Pelaporan ============ -->
+<main class="page active" id="page-lapor">
+  <div class="filter-card open" id="filterCard">
+    <button class="filter-head" id="filterToggle" aria-expanded="true">
+      <span class="ic">⚲</span>
+      <b>Filter Wilayah &amp; Petugas</b>
+      <span class="count" id="filterCount" style="display:none">0</span>
+      <span class="chev">▾</span>
+    </button>
+    <div class="filter-body">
+      <div class="field">
+        <label for="fKec">Kecamatan</label>
+        <select id="fKec" data-field="kecamatan"><option value="">Semua kecamatan</option></select>
+      </div>
+      <div class="field">
+        <label for="fDesa">Desa / Kelurahan</label>
+        <select id="fDesa" data-field="desa_kelurahan"><option value="">Semua desa/kelurahan</option></select>
+      </div>
+      <div class="grid-2">
+        <div class="field">
+          <label for="fSls">SLS</label>
+          <select id="fSls" data-field="sls"><option value="">Semua SLS</option></select>
+        </div>
+        <div class="field">
+          <label for="fSub">SubSLS</label>
+          <select id="fSub" data-field="subsls"><option value="">Semua subSLS</option></select>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="field">
+          <label for="fPml">PML</label>
+          <select id="fPml" data-field="pml"><option value="">Semua PML</option></select>
+        </div>
+        <div class="field">
+          <label for="fPpl">PPL</label>
+          <select id="fPpl" data-field="ppl"><option value="">Semua PPL</option></select>
+        </div>
+      </div>
+      <div class="filter-actions">
+        <button class="btn ghost" id="btnReset">↺ Reset</button>
+        <button class="btn primary block" id="btnTerap">Terapkan Filter</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="result-meta">
+    <b id="resCount">—</b>
+    <span id="resNote"></span>
+  </div>
+  <div id="cardList"></div>
+</main>
+
+<!-- ============ Halaman 2: Dashboard ============ -->
+<main class="page" id="page-dash">
+  <div class="section-title">Ringkasan Progres</div>
+  <div class="kpi-grid" id="kpiGrid"></div>
+
+  <div class="chart-card">
+    <h3>Progres Pelaporan Harian</h3>
+    <p class="cap">Jumlah subSLS yang melapor per hari &amp; akumulasi terhadap total subSLS.</p>
+    <div class="chart-wrap"><canvas id="chartProgres"></canvas></div>
+  </div>
+
+  <div class="chart-card">
+    <h3>Rekap Status Pendataan</h3>
+    <p class="cap">Total dokumen menurut status terakhir tiap subSLS.</p>
+    <div class="chart-wrap donut"><canvas id="chartRekap"></canvas></div>
+  </div>
+
+  <div class="table-card">
+    <div class="tc-head">
+      <h3 style="font-size:15px">Tabel Rekap</h3>
+      <p class="cap" style="margin:3px 0 0">Agregasi menurut level. Geser tabel untuk melihat semua kolom.</p>
+    </div>
+    <div class="tabs" id="tabs"></div>
+    <div class="search-row">
+      <span class="si">⌕</span>
+      <input type="search" id="tblSearch" placeholder="Cari wilayah / petugas…" autocomplete="off">
+    </div>
+    <div class="table-scroll" id="tableScroll"></div>
+  </div>
+</main>
+
+<!-- ============ Bottom nav ============ -->
+<nav class="bottom-nav">
+  <button class="nav-item active" data-page="lapor"><span class="ni-ic">✎</span>Pelaporan</button>
+  <button class="nav-item" data-page="dash"><span class="ni-ic">▤</span>Dashboard</button>
+</nav>
+
+<!-- Lightbox pratinjau foto -->
+<div class="lightbox" id="lightbox" role="dialog" aria-label="Pratinjau foto">
+  <button class="lb-close" id="lbClose" aria-label="Tutup">✕</button>
+  <div class="lb-stage"><img id="lbImg" alt="Pratinjau bukti"></div>
+  <div class="lb-spin" id="lbSpin" style="display:none">Memuat…</div>
+  <div class="lb-hint">Ketuk di luar gambar untuk menutup</div>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+/* =====================================================================
+   State & util
+===================================================================== */
+var MASTER = [];              // array objek master
+var LAPORAN = {};             // map id_subsls -> {open,submit,reject,approved,url_foto,updated_at}
+var FILTERS = { kecamatan:'', desa_kelurahan:'', sls:'', subsls:'', pml:'', ppl:'' };
+var DASH = null;              // cache data dashboard
+var charts = { progres: null, rekap: null };
+var currentTab = 'kecamatan';
+
+var LS = {
+  master: 'se26_master', filters: 'se26_filters', theme: 'se26_theme'
+};
+var STATE_COLORS = { open:'#e8912b', submit:'#3b82c4', reject:'#d64545', approved:'#1e9e57' };
+var STATE_LABEL  = { open:'Open', submit:'Submit', reject:'Reject', approved:'Approved' };
+
+// Panggil server (google.script.run) sebagai Promise
+function server(fn) {
+  var args = Array.prototype.slice.call(arguments, 1);
+  return new Promise(function (resolve, reject) {
+    var runner = google.script.run.withSuccessHandler(resolve).withFailureHandler(reject);
+    runner[fn].apply(runner, args);
+  });
+}
+
+var loadingN = 0;
+function loading(on) {
+  loadingN += on ? 1 : -1;
+  if (loadingN < 0) loadingN = 0;
+  document.getElementById('loadingBar').classList.toggle('on', loadingN > 0);
+}
+function toast(msg, type) {
+  var wrap = document.getElementById('toastWrap');
+  var t = document.createElement('div');
+  t.className = 'toast ' + (type || '');
+  var icon = type === 'ok' ? '✓' : type === 'err' ? '⚠' : 'ℹ';
+  t.innerHTML = '<span class="ti">' + icon + '</span><span>' + escapeHtml(msg) + '</span>';
+  wrap.appendChild(t);
+  setTimeout(function () { t.style.opacity = '0'; setTimeout(function () { t.remove(); }, 250); }, 3200);
+}
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, function (c) {
+    return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c];
+  });
+}
+function esc(s) { return escapeHtml(s == null ? '' : s); }
+
+/* =====================================================================
+   Navigasi & tema
+===================================================================== */
+function showPage(name) {
+  document.getElementById('page-lapor').classList.toggle('active', name === 'lapor');
+  document.getElementById('page-dash').classList.toggle('active', name === 'dash');
+  document.querySelectorAll('.nav-item').forEach(function (b) {
+    b.classList.toggle('active', b.dataset.page === name);
+  });
+  window.scrollTo(0, 0);
+  if (name === 'dash') loadDashboard();
+}
+document.querySelectorAll('.nav-item').forEach(function (b) {
+  b.addEventListener('click', function () { showPage(b.dataset.page); });
+});
+
+(function initTheme() {
+  var saved = localStorage.getItem(LS.theme);
+  if (saved) document.documentElement.setAttribute('data-theme', saved);
+  document.getElementById('themeBtn').addEventListener('click', function () {
+    var cur = document.documentElement.getAttribute('data-theme');
+    var isDark = cur ? cur === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+    var next = isDark ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem(LS.theme, next);
+    if (DASH) renderCharts(); // sinkronkan warna chart
+  });
+})();
+
+/* =====================================================================
+   HALAMAN 1 — Pelaporan
+===================================================================== */
+var FILTER_ORDER = ['kecamatan', 'desa_kelurahan', 'sls', 'subsls', 'pml', 'ppl'];
+var SELECT_MAP = { kecamatan:'fKec', desa_kelurahan:'fDesa', sls:'fSls', subsls:'fSub', pml:'fPml', ppl:'fPpl' };
+
+// Baris master yang cocok dengan filter (opsional abaikan 1 field)
+function masterMatch(m, ignore) {
+  return FILTER_ORDER.every(function (f) {
+    if (f === ignore || !FILTERS[f]) return true;
+    return m[f] === FILTERS[f];
+  });
+}
+
+// Isi opsi tiap select berdasar filter aktif lain (cascading)
+function populateFilters() {
+  FILTER_ORDER.forEach(function (field) {
+    var sel = document.getElementById(SELECT_MAP[field]);
+    var seen = {};
+    MASTER.forEach(function (m) {
+      if (masterMatch(m, field) && m[field]) seen[m[field]] = true;
+    });
+    var opts = Object.keys(seen).sort(function (a, b) {
+      return a.localeCompare(b, 'id', { numeric: true });
+    });
+    // Jika nilai terpilih tak lagi valid, kosongkan
+    if (FILTERS[field] && !seen[FILTERS[field]]) FILTERS[field] = '';
+    var placeholder = sel.options[0] ? sel.options[0].textContent : 'Semua';
+    sel.innerHTML = '<option value="">' + placeholder + '</option>' +
+      opts.map(function (o) {
+        return '<option value="' + esc(o) + '"' + (FILTERS[field] === o ? ' selected' : '') + '>' + esc(o) + '</option>';
+      }).join('');
+    sel.value = FILTERS[field];
+  });
+  updateFilterCount();
+}
+
+function updateFilterCount() {
+  var n = FILTER_ORDER.filter(function (f) { return FILTERS[f]; }).length;
+  var badge = document.getElementById('filterCount');
+  badge.style.display = n ? 'inline-block' : 'none';
+  badge.textContent = n + ' aktif';
+}
+
+// Pasang listener select
+FILTER_ORDER.forEach(function (field) {
+  document.getElementById(SELECT_MAP[field]).addEventListener('change', function () {
+    FILTERS[field] = this.value;
+    // Reset field turunan geografis bila induk berubah
+    if (field === 'kecamatan') { FILTERS.desa_kelurahan = ''; FILTERS.sls = ''; FILTERS.subsls = ''; }
+    if (field === 'desa_kelurahan') { FILTERS.sls = ''; FILTERS.subsls = ''; }
+    if (field === 'sls') { FILTERS.subsls = ''; }
+    populateFilters();
+    saveFilters();
+    renderCards();
+  });
+});
+
+document.getElementById('btnTerap').addEventListener('click', function () {
+  renderCards();
+  document.getElementById('filterCard').classList.remove('open');
+});
+document.getElementById('btnReset').addEventListener('click', function () {
+  FILTER_ORDER.forEach(function (f) { FILTERS[f] = ''; });
+  populateFilters(); saveFilters(); renderCards();
+});
+document.getElementById('filterToggle').addEventListener('click', function () {
+  var card = document.getElementById('filterCard');
+  var open = card.classList.toggle('open');
+  this.setAttribute('aria-expanded', open ? 'true' : 'false');
+});
+
+function saveFilters() {
+  try { localStorage.setItem(LS.filters, JSON.stringify(FILTERS)); } catch (e) {}
+}
+function loadFilters() {
+  try {
+    var s = JSON.parse(localStorage.getItem(LS.filters) || '{}');
+    FILTER_ORDER.forEach(function (f) { if (s[f] != null) FILTERS[f] = s[f]; });
+  } catch (e) {}
+}
+
+// Render daftar kartu subSLS
+function renderCards() {
+  var list = document.getElementById('cardList');
+  var rows = MASTER.filter(function (m) { return masterMatch(m, null); });
+
+  document.getElementById('resCount').textContent = rows.length + ' subSLS';
+  var lapor = rows.filter(function (m) { return LAPORAN[m.id_subsls] && LAPORAN[m.id_subsls].updated_at; }).length;
+  document.getElementById('resNote').textContent = lapor + ' sudah dilaporkan';
+
+  if (!rows.length) {
+    list.innerHTML = '<div class="empty-state"><div class="es-ic">◍</div><p>Tidak ada subSLS pada filter ini.</p></div>';
+    return;
+  }
+  var MAX = 400;
+  var shown = rows.slice(0, MAX);
+  list.innerHTML = shown.map(cardHtml).join('');
+  if (rows.length > MAX) {
+    list.insertAdjacentHTML('beforeend',
+      '<div class="empty-state" style="padding:16px"><p>Menampilkan ' + MAX + ' dari ' + rows.length +
+      ' subSLS. Persempit filter untuk melihat sisanya.</p></div>');
+  }
+  bindCards();
+}
+
+function cardHtml(m) {
+  var lap = LAPORAN[m.id_subsls] || {};
+  var has = !!lap.updated_at;
+  var thumb = '<span class="thumb">' + previewImg(lap.url_foto, 'Bukti ' + m.subsls, '▤') + '</span>';
+  var pills = ['open','submit','reject','approved'].map(function (k) {
+    return '<span class="pill ' + k + '"><span class="dot"></span>' + STATE_LABEL[k] + ' <span class="tnum">' + (has ? (lap[k] || 0) : 0) + '</span></span>';
+  }).join('');
+  var updated = has ? '🕓 ' + esc(lap.updated_at.slice(5, 16)) : '<span style="color:var(--st-open)">Belum lapor</span>';
+
+  return '' +
+  '<article class="card" data-id="' + esc(m.id_subsls) + '">' +
+    '<button class="card-head" type="button">' +
+      thumb +
+      '<div class="card-main">' +
+        '<div class="card-title">' + esc(m.sls) + (m.subsls ? ' — ' + esc(m.subsls) : '') + '</div>' +
+        '<div class="card-sub">' + esc(m.kecamatan) + ' • ' + esc(m.desa_kelurahan) + '</div>' +
+        '<div class="petugas">' +
+          '<span><b>PPL</b> ' + esc(m.ppl || '-') + '</span>' +
+          '<span><b>PML</b> ' + esc(m.pml || '-') + '</span>' +
+        '</div>' +
+        '<div class="pills">' + pills + '</div>' +
+      '</div>' +
+      '<div class="card-aside"><span class="updated">' + updated + '</span><span class="chev-c">▾</span></div>' +
+    '</button>' +
+    '<div class="card-form">' +
+      '<div class="num-grid">' +
+        numField('open', lap.open) + numField('submit', lap.submit) +
+        numField('reject', lap.reject) + numField('approved', lap.approved) +
+      '</div>' +
+      '<div class="photo-row">' +
+        '<div class="photo-drop">' +
+          '<span class="prev">' + previewImg(lap.url_foto, 'Bukti', '📷') + '</span>' +
+          '<div class="meta"><b>Screenshot Fasih Mobile</b>' +
+            '<p class="pmeta">' + (lap.url_foto ? 'Foto tersimpan. Ganti dengan unggah / tempel baru.' : 'Kamera, galeri, atau tempel (Ctrl+V).') + '</p>' +
+            '<div class="photo-btns">' +
+              '<label class="btn sm file-btn">📎 Pilih<input type="file" accept="image/*" class="fInput"></label>' +
+              '<button type="button" class="btn sm btnPaste">📋 Tempel</button>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="hint-err"></div>' +
+      '<div class="form-actions">' +
+        '<button class="btn ghost btnCancel" type="button">Batal</button>' +
+        '<button class="btn primary block btnSave" type="button">Simpan Laporan</button>' +
+      '</div>' +
+    '</div>' +
+  '</article>';
+}
+function numField(k, v) {
+  return '<div class="num-field">' +
+    '<label><span class="dot" style="background:' + STATE_COLORS[k] + '"></span>' + STATE_LABEL[k] + '</label>' +
+    '<input type="number" inputmode="numeric" min="0" step="1" data-k="' + k + '" value="' + (v != null ? v : 0) + '">' +
+  '</div>';
+}
+
+// Foto yang menunggu disimpan, per id_subsls
+var PENDING = {};
+var activeCardId = null;
+
+// Render <img> pratinjau (thumbnail Drive) atau placeholder
+function previewImg(url, alt, placeholder) {
+  if (!url) return placeholder || '📷';
+  return '<img class="zoomable" referrerpolicy="no-referrer" loading="lazy" alt="' + esc(alt || 'Bukti') +
+    '" src="' + esc(url) + '" data-full="' + esc(url) + '" onerror="imgFallback(this)">';
+}
+
+// Pasang interaksi seluruh kartu (idempoten via _bound)
+function bindCards() { document.querySelectorAll('.card').forEach(bindCard); }
+
+function bindCard(card) {
+  if (card._bound) return;
+  card._bound = true;
+  var id = card.dataset.id;
+
+  card.querySelector('.card-head').addEventListener('click', function () {
+    card.classList.toggle('open');
+    if (card.classList.contains('open')) activeCardId = id;
+  });
+  card.querySelector('.fInput').addEventListener('change', function () {
+    if (this.files[0]) attachPhoto(card, this.files[0]);
+    this.value = '';
+  });
+  card.querySelector('.btnPaste').addEventListener('click', function () { pasteFromClipboard(card); });
+  card.querySelector('.btnCancel').addEventListener('click', function () { card.classList.remove('open'); });
+  card.querySelector('.btnSave').addEventListener('click', function () { saveCard(card, this); });
+}
+
+// Lampirkan & kompres foto (dari file atau blob clipboard) ke satu kartu
+function attachPhoto(card, blob) {
+  var id = card.dataset.id;
+  if (!/^image\//.test(blob.type || '')) { toast('File harus berupa gambar.', 'err'); return; }
+  var meta = card.querySelector('.pmeta');
+  var prev = card.querySelector('.prev');
+  if (meta) meta.textContent = 'Mengompres foto…';
+  compressImage(blob).then(function (res) {
+    PENDING[id] = { data: res.base64, mime: 'image/jpeg' };
+    if (prev) prev.innerHTML = '<img class="zoomable" src="' + res.dataUrl + '" data-full="' + res.dataUrl + '" alt="Pratinjau">';
+    if (meta) meta.textContent = 'Foto siap (' + res.kb + ' KB). Klik Simpan Laporan.';
+  }).catch(function () {
+    toast('Gagal memproses foto.', 'err');
+    if (meta) meta.textContent = 'Gagal memproses foto, coba lagi.';
+  });
+}
+
+// Tombol Tempel: coba async clipboard, fallback ke Ctrl+V
+function pasteFromClipboard(card) {
+  if (!(navigator.clipboard && navigator.clipboard.read)) {
+    toast('Salin gambar lalu tekan Ctrl+V pada kartu ini.', 'err'); return;
+  }
+  navigator.clipboard.read().then(function (items) {
+    for (var i = 0; i < items.length; i++) {
+      var t = (items[i].types || []).filter(function (x) { return x.indexOf('image') === 0; })[0];
+      if (t) { items[i].getType(t).then(function (b) { attachPhoto(card, b); toast('Gambar clipboard ditempel.', 'ok'); }); return; }
+    }
+    toast('Clipboard tidak berisi gambar.', 'err');
+  }).catch(function () {
+    toast('Tak bisa membaca clipboard otomatis. Salin gambar lalu tekan Ctrl+V.', 'err');
+  });
+}
+
+// Validasi + simpan satu kartu
+function saveCard(card, btn) {
+  var id = card.dataset.id;
+  var err = card.querySelector('.hint-err');
+  err.style.display = 'none';
+  var payload = { id_subsls: id, foto: PENDING[id] || null };
+  var valid = true;
+  card.querySelectorAll('input[data-k]').forEach(function (inp) {
+    var v = parseInt(inp.value, 10);
+    if (isNaN(v) || v < 0) { valid = false; inp.style.borderColor = 'var(--st-reject)'; }
+    else inp.style.borderColor = '';
+    payload[inp.dataset.k] = isNaN(v) ? 0 : v;
+  });
+  if (!valid) { err.textContent = 'Nilai open/submit/reject/approved harus angka ≥ 0.'; err.style.display = 'block'; return; }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Menyimpan…';
+  loading(true);
+  server('saveLaporan', payload).then(function (res) {
+    LAPORAN[id] = res.laporan;
+    delete PENDING[id];
+    toast('Laporan subSLS tersimpan.', 'ok');
+    card.classList.remove('open');
+    refreshCard(card, id);
+    if (DASH) DASH = null; // paksa muat ulang dashboard
+  }).catch(function (e) {
+    toast(e && e.message ? e.message : 'Gagal menyimpan laporan.', 'err');
+  }).finally(function () {
+    loading(false);
+    btn.disabled = false;
+    btn.innerHTML = 'Simpan Laporan';
+  });
+}
+
+// Perbarui isi 1 kartu tanpa render ulang semua
+function refreshCard(card, id) {
+  var m = MASTER.find(function (x) { return x.id_subsls === id; });
+  if (!m) return;
+  var wasOpen = card.classList.contains('open');
+  var tmp = document.createElement('div');
+  tmp.innerHTML = cardHtml(m);
+  var fresh = tmp.firstChild;
+  if (wasOpen) fresh.classList.add('open');
+  card.replaceWith(fresh);
+  bindCard(fresh);
+}
+
+/* --- Lightbox pratinjau & paste global --- */
+// Fallback bila thumbnail Drive gagal dimuat: ambil base64 lewat server
+function imgFallback(img) {
+  img.onerror = null;
+  var m = (img.getAttribute('src') || '').match(/[?&]id=([^&]+)/);
+  if (!m) { img.outerHTML = '<span class="img-broken">⚠</span>'; return; }
+  server('getFoto', m[1]).then(function (dataUrl) {
+    img.src = dataUrl; img.setAttribute('data-full', dataUrl);
+  }).catch(function () { img.outerHTML = '<span class="img-broken">⚠</span>'; });
+}
+
+function openLightbox(imgEl) {
+  var full = imgEl.getAttribute('data-full') || imgEl.src;
+  var lb = document.getElementById('lightbox');
+  var lbImg = document.getElementById('lbImg');
+  var spin = document.getElementById('lbSpin');
+  var big = full.replace(/([?&]sz=w)\d+/, '$11600'); // minta resolusi lebih besar untuk foto Drive
+  spin.style.display = 'block'; spin.textContent = 'Memuat…'; lbImg.style.visibility = 'hidden';
+  lbImg.onload = function () { spin.style.display = 'none'; lbImg.style.visibility = 'visible'; };
+  lbImg.onerror = function () {
+    var mm = big.match(/[?&]id=([^&]+)/);
+    if (mm) { server('getFoto', mm[1]).then(function (d) { lbImg.onerror = null; lbImg.src = d; }).catch(function () { spin.textContent = 'Gagal memuat foto.'; }); }
+    else { spin.textContent = 'Gagal memuat foto.'; }
+  };
+  lbImg.src = big;
+  lb.classList.add('on');
+}
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('on');
+  document.getElementById('lbImg').src = '';
+}
+
+// Klik gambar mana pun (.zoomable) → buka lightbox. Capture agar tak memicu expand kartu.
+document.addEventListener('click', function (e) {
+  var img = e.target.closest && e.target.closest('.zoomable');
+  if (img) { e.stopPropagation(); e.preventDefault(); openLightbox(img); }
+}, true);
+document.getElementById('lbClose').addEventListener('click', closeLightbox);
+document.getElementById('lightbox').addEventListener('click', function (e) {
+  if (e.target === this || e.target.classList.contains('lb-stage')) closeLightbox();
+});
+document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeLightbox(); });
+
+// Lacak kartu aktif sebagai target paste
+document.addEventListener('focusin', function (e) {
+  var c = e.target.closest && e.target.closest('.card');
+  if (c) activeCardId = c.dataset.id;
+});
+// Ctrl+V / paste di mana saja → tempel ke kartu yang sedang terbuka
+document.addEventListener('paste', function (e) {
+  var open = null;
+  document.querySelectorAll('.card.open').forEach(function (c) {
+    if (!open && (!activeCardId || c.dataset.id === activeCardId)) open = c;
+  });
+  if (!open) return;
+  var items = (e.clipboardData && e.clipboardData.items) || [];
+  for (var i = 0; i < items.length; i++) {
+    if (items[i].type && items[i].type.indexOf('image') === 0) {
+      var file = items[i].getAsFile();
+      if (file) { e.preventDefault(); attachPhoto(open, file); toast('Gambar dari clipboard ditempel.', 'ok'); return; }
+    }
+  }
+});
+
+// Kompres gambar via canvas → JPEG base64
+function compressImage(file, maxW, quality) {
+  maxW = maxW || 1280; quality = quality || 0.7;
+  return new Promise(function (resolve, reject) {
+    var reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = function (e) {
+      var img = new Image();
+      img.onerror = reject;
+      img.onload = function () {
+        var scale = Math.min(1, maxW / img.width);
+        var w = Math.round(img.width * scale), h = Math.round(img.height * scale);
+        var canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        var ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h);
+        ctx.drawImage(img, 0, 0, w, h);
+        var dataUrl = canvas.toDataURL('image/jpeg', quality);
+        var base64 = dataUrl.split(',')[1];
+        resolve({ dataUrl: dataUrl, base64: base64, kb: Math.round(base64.length * 0.75 / 1024) });
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+/* =====================================================================
+   HALAMAN 2 — Dashboard
+===================================================================== */
+var TABS = [
+  { key:'kecamatan', label:'Kecamatan', group:['kecamatan'], cols:['kecamatan'] },
+  { key:'desa',      label:'Desa/Kel',  group:['kecamatan','desa_kelurahan'], cols:['kecamatan','desa_kelurahan'] },
+  { key:'sls',       label:'SLS',       group:['kecamatan','desa_kelurahan','sls'], cols:['kecamatan','desa_kelurahan','sls','pml','ppl'] },
+  { key:'subsls',    label:'SubSLS',    group:['id_subsls'], cols:['kecamatan','desa_kelurahan','sls','subsls','pml','ppl'] },
+  { key:'pml',       label:'PML',       group:['pml'], cols:['pml'] },
+  { key:'ppl',       label:'PPL',       group:['ppl'], cols:['ppl','pml'] }
+];
+var COL_LABEL = { kecamatan:'Kecamatan', desa_kelurahan:'Desa/Kel', sls:'SLS', subsls:'SubSLS', pml:'PML', ppl:'PPL' };
+
+function loadDashboard(force) {
+  if (DASH && !force) { renderDashboard(); return; }
+  loading(true);
+  server('getDashboardData').then(function (d) {
+    DASH = d;
+    renderDashboard();
+  }).catch(function (e) {
+    toast(e && e.message ? e.message : 'Gagal memuat dashboard.', 'err');
+  }).finally(function () { loading(false); });
+}
+
+function renderDashboard() {
+  renderKpi();
+  renderCharts();
+  renderTabs();
+  renderTable();
+}
+
+function renderKpi() {
+  var total = DASH.master.length;
+  var lapor = DASH.master.filter(function (m) {
+    var l = DASH.laporan[m.id_subsls]; return l && l.updated_at;
+  }).length;
+  var belum = total - lapor;
+  var pct = total ? Math.round(lapor / total * 100) : 0;
+  var tiles = [
+    { lbl:'Total subSLS', val: fmt(total), sub:'Target pendataan', cls:'' },
+    { lbl:'Sudah Lapor', val: fmt(lapor), sub: pct + '% dari target', cls:'ok' },
+    { lbl:'Belum Lapor', val: fmt(belum), sub:'Perlu tindak lanjut', cls:'warn' },
+    { lbl:'Progres', val: pct + '%', sub:'Cakupan pelaporan', cls:'accent' }
+  ];
+  document.getElementById('kpiGrid').innerHTML = tiles.map(function (t) {
+    return '<div class="kpi ' + t.cls + '"><div class="lbl">' + t.lbl + '</div>' +
+      '<div class="val tnum">' + t.val + '</div><div class="sub">' + t.sub + '</div></div>';
+  }).join('');
+}
+function fmt(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
+
+// Ambil warna dari CSS variable (agar chart ikut tema)
+function cssVar(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+
+function renderCharts() {
+  if (!DASH) return;
+  var ink2 = cssVar('--ink-2'), grid = cssVar('--border'), surface = cssVar('--surface'), muted = cssVar('--muted');
+  var accent = cssVar('--accent');
+  Chart.defaults.font.family = 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+  Chart.defaults.font.size = 12;
+
+  // ---- Grafik progres (harian bar + kumulatif line) ----
+  var byDate = {};
+  DASH.riwayat.forEach(function (r) {
+    if (!r.tanggal) return;
+    if (!byDate[r.tanggal]) byDate[r.tanggal] = {};
+    byDate[r.tanggal][r.id_subsls] = true;
+  });
+  var dates = Object.keys(byDate).sort();
+  var seenCum = {}, harian = [], kumulatif = [];
+  dates.forEach(function (d) {
+    harian.push(Object.keys(byDate[d]).length);
+    Object.keys(byDate[d]).forEach(function (id) { seenCum[id] = true; });
+    kumulatif.push(Object.keys(seenCum).length);
+  });
+  var totalSub = DASH.master.length;
+  var labels = dates.map(function (d) { return d.slice(5); }); // MM-dd
+
+  if (charts.progres) charts.progres.destroy();
+  charts.progres = new Chart(document.getElementById('chartProgres'), {
+    type: 'bar', // tipe dasar; tiap dataset menimpa dengan type sendiri
+    data: {
+      labels: labels,
+      datasets: [
+        { type:'line', label:'Kumulatif melapor', data: kumulatif, borderColor: accent,
+          backgroundColor: hexA(accent, .12), fill:true, tension:.3, borderWidth:2,
+          pointRadius:0, pointHoverRadius:5, order:1 },
+        { type:'bar', label:'Lapor harian', data: harian, backgroundColor: hexA(STATE_COLORS.submit, .55),
+          borderColor: STATE_COLORS.submit, borderWidth:1, borderRadius:4, order:2, maxBarThickness:26 },
+        { type:'line', label:'Total subSLS', data: dates.map(function(){ return totalSub; }),
+          borderColor: muted, borderDash:[5,5], borderWidth:1.5, pointRadius:0, fill:false, order:0 }
+      ]
+    },
+    options: chartOpts(ink2, grid, {
+      y: { beginAtZero:true, grid:{ color:grid }, ticks:{ color:muted, precision:0 } },
+      x: { grid:{ display:false }, ticks:{ color:muted, maxRotation:0, autoSkipPadding:12 } }
+    })
+  });
+
+  // ---- Grafik rekap status (donut) ----
+  var sums = { open:0, submit:0, reject:0, approved:0 };
+  Object.keys(DASH.laporan).forEach(function (id) {
+    var l = DASH.laporan[id];
+    sums.open += l.open || 0; sums.submit += l.submit || 0;
+    sums.reject += l.reject || 0; sums.approved += l.approved || 0;
+  });
+  var totalDok = sums.open + sums.submit + sums.reject + sums.approved;
+  if (charts.rekap) charts.rekap.destroy();
+  charts.rekap = new Chart(document.getElementById('chartRekap'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Open','Submit','Reject','Approved'],
+      datasets: [{
+        data: [sums.open, sums.submit, sums.reject, sums.approved],
+        backgroundColor: [STATE_COLORS.open, STATE_COLORS.submit, STATE_COLORS.reject, STATE_COLORS.approved],
+        borderColor: surface, borderWidth: 2, hoverOffset: 6
+      }]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false, cutout:'62%',
+      plugins: {
+        legend: { position:'bottom', labels:{ color:ink2, usePointStyle:true, pointStyle:'circle', padding:14, font:{ size:12.5 } } },
+        tooltip: { callbacks: { label: function (c) {
+          var p = totalDok ? Math.round(c.parsed / totalDok * 100) : 0;
+          return '  ' + c.label + ': ' + fmt(c.parsed) + ' (' + p + '%)';
+        } } }
+      }
+    },
+    plugins: [centerText(totalDok, ink2, muted)]
+  });
+}
+
+function chartOpts(ink2, grid, scales) {
+  return {
+    responsive:true, maintainAspectRatio:false, interaction:{ mode:'index', intersect:false },
+    plugins: {
+      legend: { position:'top', align:'end', labels:{ color:ink2, usePointStyle:true, pointStyle:'circle', padding:14, boxWidth:8, font:{ size:12 } } },
+      tooltip: { callbacks: { label: function (c) { return '  ' + c.dataset.label + ': ' + fmt(c.parsed.y); } } }
+    },
+    scales: scales
+  };
+}
+// Plugin teks tengah donut
+function centerText(total, ink, muted) {
+  return {
+    id: 'centerText',
+    beforeDraw: function (chart) {
+      var ctx = chart.ctx, area = chart.chartArea;
+      if (!area) return;
+      var cx = (area.left + area.right) / 2, cy = (area.top + area.bottom) / 2;
+      ctx.save();
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillStyle = ink; ctx.font = '700 24px system-ui, sans-serif';
+      ctx.fillText(fmt(total), cx, cy - 8);
+      ctx.fillStyle = muted; ctx.font = '600 11px system-ui, sans-serif';
+      ctx.fillText('TOTAL DOKUMEN', cx, cy + 13);
+      ctx.restore();
+    }
+  };
+}
+function hexA(hex, a) {
+  hex = hex.replace('#','');
+  if (hex.length === 3) hex = hex.split('').map(function (c){ return c + c; }).join('');
+  var r = parseInt(hex.slice(0,2),16), g = parseInt(hex.slice(2,4),16), b = parseInt(hex.slice(4,6),16);
+  return 'rgba(' + r + ',' + g + ',' + b + ',' + a + ')';
+}
+
+// ---- Tabel rekap ber-tab ----
+function renderTabs() {
+  document.getElementById('tabs').innerHTML = TABS.map(function (t) {
+    return '<button class="tab' + (t.key === currentTab ? ' active' : '') + '" data-tab="' + t.key + '">' + t.label + '</button>';
+  }).join('');
+  document.querySelectorAll('.tab').forEach(function (b) {
+    b.addEventListener('click', function () {
+      currentTab = b.dataset.tab;
+      document.querySelectorAll('.tab').forEach(function (x) { x.classList.toggle('active', x === b); });
+      renderTable();
+    });
+  });
+}
+
+function aggregate(tab) {
+  var groups = {};
+  DASH.master.forEach(function (m) {
+    var key = tab.group.map(function (g) { return m[g]; }).join('¦');
+    if (!groups[key]) {
+      groups[key] = { count:0, open:0, submit:0, reject:0, approved:0, cols:{} };
+      tab.cols.forEach(function (c) { groups[key].cols[c] = {}; });
+    }
+    var g = groups[key];
+    g.count++;
+    tab.cols.forEach(function (c) { if (m[c]) g.cols[c][m[c]] = true; });
+    var l = DASH.laporan[m.id_subsls];
+    if (l) { g.open += l.open||0; g.submit += l.submit||0; g.reject += l.reject||0; g.approved += l.approved||0; }
+  });
+  return Object.keys(groups).map(function (k) {
+    var g = groups[k];
+    var row = { _count: g.count, open:g.open, submit:g.submit, reject:g.reject, approved:g.approved,
+                total: g.open + g.submit + g.reject + g.approved };
+    tab.cols.forEach(function (c) {
+      var vals = Object.keys(g.cols[c]);
+      row[c] = vals.length ? vals.sort(function(a,b){return a.localeCompare(b,'id',{numeric:true});}).join(', ') : '-';
+    });
+    return row;
+  }).sort(function (a, b) {
+    return String(a[tab.cols[0]]).localeCompare(String(b[tab.cols[0]]), 'id', { numeric:true });
+  });
+}
+
+function renderTable() {
+  var tab = TABS.find(function (t) { return t.key === currentTab; });
+  var rows = aggregate(tab);
+  var q = (document.getElementById('tblSearch').value || '').toLowerCase().trim();
+  if (q) {
+    rows = rows.filter(function (r) {
+      return tab.cols.some(function (c) { return String(r[c]).toLowerCase().indexOf(q) >= 0; });
+    });
+  }
+
+  var idCols = tab.cols; // kolom identitas
+  var numCols = [
+    { k:'_count', label:'Jml SubSLS', dot:null },
+    { k:'open', label:'Open', dot:STATE_COLORS.open },
+    { k:'submit', label:'Submit', dot:STATE_COLORS.submit },
+    { k:'reject', label:'Reject', dot:STATE_COLORS.reject },
+    { k:'approved', label:'Approved', dot:STATE_COLORS.approved },
+    { k:'total', label:'Total', dot:null }
+  ];
+
+  if (!rows.length) {
+    document.getElementById('tableScroll').innerHTML = '<div class="tbl-empty">Tidak ada data yang cocok.</div>';
+    return;
+  }
+
+  var thead = '<tr>' +
+    idCols.map(function (c, i) {
+      return '<th class="idc' + (i === 0 ? ' stick' : '') + '">' + (COL_LABEL[c] || c) + '</th>';
+    }).join('') +
+    numCols.map(function (n) { return '<th>' + n.label + '</th>'; }).join('') +
+    '</tr>';
+
+  var tbody = rows.map(function (r) {
+    return '<tr>' +
+      idCols.map(function (c, i) {
+        return '<td class="idc' + (i === 0 ? ' stick' : '') + '">' + esc(r[c]) + '</td>';
+      }).join('') +
+      numCols.map(function (n) {
+        var v = fmt(r[n.k]);
+        if (n.dot) return '<td class="num"><span class="mini"><span class="dot" style="background:' + n.dot + '"></span>' + v + '</span></td>';
+        return '<td class="num"><b style="color:var(--ink)">' + v + '</b></td>';
+      }).join('') +
+    '</tr>';
+  }).join('');
+
+  // Footer total
+  var tot = { _count:0, open:0, submit:0, reject:0, approved:0, total:0 };
+  rows.forEach(function (r) { numCols.forEach(function (n) { tot[n.k] += r[n.k]; }); });
+  var tfoot = '<tr>' +
+    idCols.map(function (c, i) {
+      return '<td class="' + (i === 0 ? 'stick' : '') + '">' + (i === 0 ? 'TOTAL' : '') + '</td>';
+    }).join('') +
+    numCols.map(function (n) { return '<td>' + fmt(tot[n.k]) + '</td>'; }).join('') +
+  '</tr>';
+
+  document.getElementById('tableScroll').innerHTML =
+    '<table><thead>' + thead + '</thead><tbody>' + tbody + '</tbody><tfoot>' + tfoot + '</tfoot></table>';
+}
+
+document.getElementById('tblSearch').addEventListener('input', function () {
+  clearTimeout(this._t); var self = this;
+  this._t = setTimeout(function () { renderTable(); }, 180);
+});
+
+/* =====================================================================
+   Bootstrap
+===================================================================== */
+function boot() {
+  loadFilters();
+  // Prime dari cache master agar filter tampil cepat
+  try {
+    var cached = JSON.parse(localStorage.getItem(LS.master) || 'null');
+    if (cached && cached.length) { MASTER = cached; populateFilters(); }
+  } catch (e) {}
+
+  loading(true);
+  server('getReportingData').then(function (d) {
+    MASTER = d.master || [];
+    LAPORAN = d.laporan || {};
+    try { localStorage.setItem(LS.master, JSON.stringify(MASTER)); } catch (e) {}
+    if (!MASTER.length) {
+      document.getElementById('cardList').innerHTML =
+        '<div class="empty-state"><div class="es-ic">◍</div><p>Belum ada data di sheet <b>master</b>.<br>Isi master, lalu muat ulang.</p></div>';
+      return;
+    }
+    populateFilters();
+    renderCards();
+  }).catch(function (e) {
+    toast(e && e.message ? e.message : 'Gagal memuat data.', 'err');
+    document.getElementById('cardList').innerHTML =
+      '<div class="empty-state"><div class="es-ic">⚠</div><p>Gagal memuat data.<br>Pastikan setup() sudah dijalankan.</p></div>';
+  }).finally(function () { loading(false); });
+}
+boot();
+</script>
