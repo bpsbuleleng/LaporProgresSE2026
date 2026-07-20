@@ -12,12 +12,16 @@
 const SPREADSHEET_ID = '1C_JzJhRYb7n_qxzHdNjKlnIbPZ28k3JbyRqXKN5TjEI'; // database
 const FOLDER_ID      = '1oFg7jRb1Pu4B7HHW3jcH0Zwhi-mIiuj_';            // folder foto
 const TZ             = 'Asia/Makassar';                                 // WITA (Bali/Buleleng)
+// Sumber hasil sistem (dashboard monitoring publik, tanpa login)
+const MONITORING_URL = 'https://bpsbuleleng.github.io/MonitoringSE2026/';
 
 // Nama sheet + header (urutan kolom wajib sama)
 const SHEETS = {
   master:  ['id_subsls', 'kecamatan', 'desa_kelurahan', 'sls', 'subsls', 'ppl', 'pml'],
   laporan: ['id_subsls', 'open', 'submit', 'reject', 'approved', 'url_foto', 'updated_at'],
-  riwayat: ['tanggal', 'id_subsls', 'open', 'submit', 'reject', 'approved']
+  riwayat: ['tanggal', 'id_subsls', 'open', 'submit', 'reject', 'approved'],
+  // Muatan/target wilayah per subSLS (referensi prefilled, diisi via impor)
+  muatan:  ['id_subsls', 'jml_keluarga', 'keluarga_lainnya', 'jml_usaha', 'usaha_lainnya']
 };
 
 // ====== Entry point Web App ======
@@ -63,6 +67,100 @@ function getFolder_() {
   }
 }
 
+// Ambil sheet, buat otomatis + header bila belum ada
+function getOrCreateSheet_(name) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let sh = ss.getSheetByName(name);
+  if (!sh) {
+    sh = ss.insertSheet(name);
+    sh.getRange(1, 1, 1, SHEETS[name].length).setValues([SHEETS[name]])
+      .setFontWeight('bold').setBackground('#134E8E').setFontColor('#ffffff');
+    sh.setFrozenRows(1);
+  }
+  return sh;
+}
+
+// Baca sheet yang boleh belum ada (tidak melempar error) — aman untuk data opsional
+function readSheetSafe_(name) {
+  try { return readSheet_(name); } catch (e) { return []; }
+}
+
+// Peta muatan per id_subsls (kosong bila sheet belum ada / belum diisi)
+function readMuatanMap_() {
+  const map = {};
+  readSheetSafe_('muatan').forEach(function (r) {
+    map[String(r.id_subsls).trim()] = {
+      jml_keluarga: num_(r.jml_keluarga),
+      keluarga_lainnya: num_(r.keluarga_lainnya),
+      jml_usaha: num_(r.jml_usaha),
+      usaha_lainnya: num_(r.usaha_lainnya)
+    };
+  });
+  return map;
+}
+
+/**
+ * Ambil hasil sistem per subSLS dari dashboard Monitoring SE2026 dan isi sheet `muatan`.
+ * Halaman menyimpan datanya sebagai window.DASH_DATA = { fields:[...], rows:[[...]] }.
+ * id_subsls dibentuk dari idsls (14 digit) + kdsub (2 digit).
+ * Jalankan manual, atau pasang trigger time-based agar otomatis.
+ */
+function updateMuatan() {
+  const res = UrlFetchApp.fetch(MONITORING_URL, { muteHttpExceptions: true, followRedirects: true });
+  if (res.getResponseCode() !== 200) {
+    throw new Error('Gagal mengambil halaman monitoring (HTTP ' + res.getResponseCode() + ').');
+  }
+  const html = res.getContentText();
+
+  // Potong blok JSON: dari '{' setelah penanda sampai penutup </script>
+  const i = html.indexOf('window.DASH_DATA');
+  if (i < 0) throw new Error('Struktur halaman monitoring berubah: window.DASH_DATA tidak ditemukan.');
+  const st = html.indexOf('{', i);
+  const en = html.indexOf('</script>', st);
+  if (st < 0 || en < 0) throw new Error('Struktur halaman monitoring berubah: blok data tidak lengkap.');
+  let raw = html.substring(st, en).trim();
+  if (raw.slice(-1) === ';') raw = raw.slice(0, -1);
+
+  let D;
+  try { D = JSON.parse(raw); }
+  catch (e) { throw new Error('Data monitoring gagal diurai: ' + e.message); }
+
+  const f = D.fields || [];
+  const ix = {};
+  ['idsls', 'kdsub', 'rkkel', 'rkkellain', 'rkush', 'rkushlain'].forEach(function (k) {
+    ix[k] = f.indexOf(k);
+    if (ix[k] < 0) throw new Error('Kolom "' + k + '" tidak ada di data monitoring.');
+  });
+
+  const out = (D.rows || []).map(function (r) {
+    const sid = String(r[ix.idsls]) + ('0' + String(r[ix.kdsub])).slice(-2); // 14 + 2 digit
+    return [sid, num_(r[ix.rkkel]), num_(r[ix.rkkellain]), num_(r[ix.rkush]), num_(r[ix.rkushlain])];
+  });
+  if (!out.length) throw new Error('Data monitoring kosong.');
+
+  const sh = getOrCreateSheet_('muatan');
+  if (sh.getLastRow() > 1) sh.getRange(2, 1, sh.getLastRow() - 1, 5).clearContent();
+  sh.getRange(2, 1, out.length, 1).setNumberFormat('@');  // id sebagai teks (hindari notasi ilmiah)
+  sh.getRange(2, 1, out.length, 5).setValues(out);
+
+  const info = String(D.updated || '-');
+  PropertiesService.getScriptProperties().setProperty('muatan_updated', info);
+  return 'Hasil sistem diperbarui: ' + out.length + ' subSLS (data monitoring per ' + info + ').';
+}
+
+// Impor massal data muatan (menimpa seluruh isi sheet muatan)
+function simpanMuatan(rows) {
+  if (!rows || !rows.length) throw new Error('Data muatan kosong.');
+  const sh = getOrCreateSheet_('muatan');
+  const out = rows.map(function (r) {
+    return [String(r.id_subsls).trim(), num_(r.jml_keluarga), num_(r.keluarga_lainnya),
+            num_(r.jml_usaha), num_(r.usaha_lainnya)];
+  });
+  if (sh.getLastRow() > 1) sh.getRange(2, 1, sh.getLastRow() - 1, 5).clearContent();
+  sh.getRange(2, 1, out.length, 5).setValues(out);
+  return 'Muatan tersimpan untuk ' + out.length + ' subSLS.';
+}
+
 // Baca seluruh isi sheet menjadi array objek {header: nilai}
 function readSheet_(name) {
   const sh = getSheet_(name);
@@ -91,7 +189,10 @@ function getReportingData() {
       updated_at: String(r.updated_at || '')
     };
   });
-  return { master: master, laporan: laporan };
+  return {
+    master: master, laporan: laporan, muatan: readMuatanMap_(),
+    muatan_updated: PropertiesService.getScriptProperties().getProperty('muatan_updated') || ''
+  };
 }
 
 // ====== Data untuk Halaman 2 (Dashboard) ======
@@ -113,7 +214,7 @@ function getDashboardData() {
       reject: num_(r.reject), approved: num_(r.approved)
     };
   });
-  return { master: master, laporan: laporan, riwayat: riwayat };
+  return { master: master, laporan: laporan, riwayat: riwayat, muatan: readMuatanMap_() };
 }
 
 // ====== Simpan laporan (upsert laporan + riwayat + foto) ======

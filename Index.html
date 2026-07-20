@@ -206,6 +206,15 @@
   .photo-drop .meta p { margin: 2px 0 0; font-size: 11.5px; color: var(--muted); }
   .file-btn { position: relative; overflow: hidden; }
   .file-btn input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  /* Panel muatan wilayah (referensi, read-only) */
+  .muatan { border: 1px solid var(--border); background: var(--accent-soft); border-radius: var(--radius-sm); padding: 11px 12px; margin-bottom: 13px; }
+  .mu-head { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .6px; color: var(--accent); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+  .mu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; }
+  .mu-cell { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+  .mu-cell .k { font-size: 11.5px; color: var(--ink-2); }
+  .mu-cell .v { font-size: 15px; font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .mu-empty { font-size: 11.5px; color: var(--muted); }
+  .mu-note { font-size: 10.5px; color: var(--muted); margin-top: 8px; padding-top: 7px; border-top: 1px solid var(--border); }
   .photo-btns { display: flex; gap: 8px; margin-top: 9px; flex-wrap: wrap; }
   .btn.sm { height: 36px; padding: 0 12px; font-size: 13px; }
   .form-actions { display: flex; gap: 10px; margin-top: 14px; }
@@ -237,6 +246,10 @@
   .chart-card .cap { font-size: 12px; color: var(--muted); margin: 3px 0 12px; }
   .chart-wrap { position: relative; height: 250px; }
   .chart-wrap.donut { height: 230px; }
+  .chart-wrap.komposisi { height: 150px; }
+  .scope-note { font-size: 12px; color: var(--ink-2); background: var(--accent-soft); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 9px 12px; margin-bottom: 14px; display: none; }
+  .scope-note.on { display: block; }
+  .scope-note b { color: var(--accent); }
 
   /* Tabel rekap */
   .table-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
@@ -264,6 +277,11 @@
   tbody td .mini .dot { width: 7px; height: 7px; border-radius: 50%; }
   tfoot td { padding: 11px 12px; font-weight: 800; border-top: 2px solid var(--border); background: var(--surface-2); text-align: right; font-variant-numeric: tabular-nums; }
   tfoot td.stick { text-align: left; background: var(--surface-2); }
+  /* Header bergrup + tint kolom hasil sistem (agar tak tertukar dgn angka petugas) */
+  thead th.grp { text-align: center; letter-spacing: .4px; border-bottom: 1px solid var(--border); }
+  thead th.sysc { background: color-mix(in srgb, var(--accent-soft) 70%, var(--surface-2)); color: var(--accent); }
+  tbody tr td.sysc { background: color-mix(in srgb, var(--accent-soft) 45%, var(--surface)); }
+  tfoot td.sysc { background: color-mix(in srgb, var(--accent-soft) 70%, var(--surface-2)); }
   .tbl-empty { padding: 26px 16px; text-align: center; color: var(--muted); font-size: 13.5px; }
 
   /* ============ Bottom nav ============ */
@@ -365,6 +383,43 @@
 
 <!-- ============ Halaman 2: Dashboard ============ -->
 <main class="page" id="page-dash">
+  <div class="filter-card" id="dFilterCard">
+    <button class="filter-head" id="dFilterToggle" aria-expanded="false">
+      <span class="ic">⚲</span>
+      <b>Filter Dashboard</b>
+      <span class="count" id="dFilterCount" style="display:none">0</span>
+      <span class="chev">▾</span>
+    </button>
+    <div class="filter-body">
+      <div class="field">
+        <label for="dKec">Kecamatan</label>
+        <select id="dKec"><option value="">Semua kecamatan</option></select>
+      </div>
+      <div class="field">
+        <label for="dDesa">Desa / Kelurahan</label>
+        <select id="dDesa"><option value="">Semua desa/kelurahan</option></select>
+      </div>
+      <div class="field">
+        <label for="dSls">SLS</label>
+        <select id="dSls"><option value="">Semua SLS</option></select>
+      </div>
+      <div class="grid-2">
+        <div class="field">
+          <label for="dPml">PML</label>
+          <select id="dPml"><option value="">Semua PML</option></select>
+        </div>
+        <div class="field">
+          <label for="dPpl">PPL</label>
+          <select id="dPpl"><option value="">Semua PPL</option></select>
+        </div>
+      </div>
+      <div class="filter-actions">
+        <button class="btn ghost block" id="dBtnReset">↺ Reset filter</button>
+      </div>
+    </div>
+  </div>
+  <div class="scope-note" id="scopeNote"></div>
+
   <div class="section-title">Ringkasan Progres</div>
   <div class="kpi-grid" id="kpiGrid"></div>
 
@@ -378,6 +433,21 @@
     <h3>Rekap Status Pendataan</h3>
     <p class="cap">Total dokumen menurut status terakhir tiap subSLS.</p>
     <div class="chart-wrap donut"><canvas id="chartRekap"></canvas></div>
+  </div>
+
+  <div class="section-title">Hasil Sistem — Monitoring SE2026</div>
+  <div class="kpi-grid" id="sysKpi"></div>
+
+  <div class="chart-card">
+    <h3>Komposisi Entitas Terdata</h3>
+    <p class="cap">Proporsi kasus <b>lainnya</b> (tidak ditemukan, tutup, ganda, non-respon) terhadap total.</p>
+    <div class="chart-wrap komposisi"><canvas id="chartKomposisi"></canvas></div>
+  </div>
+
+  <div class="chart-card">
+    <h3 id="sysWilayahTitle">Hasil Sistem per Wilayah</h3>
+    <p class="cap" id="sysWilayahCap">Keluarga &amp; usaha terdata, diurutkan dari terbanyak.</p>
+    <div class="chart-wrap" id="sysWilayahWrap"><canvas id="chartSistem"></canvas></div>
   </div>
 
   <div class="table-card">
@@ -417,13 +487,15 @@
 ===================================================================== */
 var MASTER = [];              // array objek master
 var LAPORAN = {};             // map id_subsls -> {open,submit,reject,approved,url_foto,updated_at}
+var MUATAN = {};              // map id_subsls -> {jml_keluarga,keluarga_lainnya,jml_usaha,usaha_lainnya}
+var MUATAN_INFO = '';         // keterangan tanggal data sistem
 var FILTERS = { kecamatan:'', desa_kelurahan:'', sls:'', subsls:'', pml:'', ppl:'' };
 var DASH = null;              // cache data dashboard
-var charts = { progres: null, rekap: null };
+var charts = { progres: null, rekap: null, komposisi: null, sistem: null };
 var currentTab = 'kecamatan';
 
 var LS = {
-  master: 'se26_master', filters: 'se26_filters', theme: 'se26_theme'
+  master: 'se26_master', filters: 'se26_filters', theme: 'se26_theme', dfilters: 'se26_dfilters'
 };
 var STATE_COLORS = { open:'#e8912b', submit:'#3b82c4', reject:'#d64545', approved:'#1e9e57' };
 var STATE_LABEL  = { open:'Open', submit:'Submit', reject:'Reject', approved:'Approved' };
@@ -494,13 +566,15 @@ document.querySelectorAll('.nav-item').forEach(function (b) {
 var FILTER_ORDER = ['kecamatan', 'desa_kelurahan', 'sls', 'subsls', 'pml', 'ppl'];
 var SELECT_MAP = { kecamatan:'fKec', desa_kelurahan:'fDesa', sls:'fSls', subsls:'fSub', pml:'fPml', ppl:'fPpl' };
 
-// Baris master yang cocok dengan filter (opsional abaikan 1 field)
-function masterMatch(m, ignore) {
-  return FILTER_ORDER.every(function (f) {
-    if (f === ignore || !FILTERS[f]) return true;
-    return m[f] === FILTERS[f];
+// Pencocokan generik — dipakai halaman Pelaporan maupun Dashboard
+function rowMatch(m, filters, order, ignore) {
+  return order.every(function (f) {
+    if (f === ignore || !filters[f]) return true;
+    return m[f] === filters[f];
   });
 }
+// Baris master yang cocok dengan filter Pelaporan (opsional abaikan 1 field)
+function masterMatch(m, ignore) { return rowMatch(m, FILTERS, FILTER_ORDER, ignore); }
 
 // Isi opsi tiap select berdasar filter aktif lain (cascading)
 function populateFilters() {
@@ -613,12 +687,14 @@ function cardHtml(m) {
         '<div class="petugas">' +
           '<span><b>PPL</b> ' + esc(m.ppl || '-') + '</span>' +
           '<span><b>PML</b> ' + esc(m.pml || '-') + '</span>' +
+          muatanRingkas(MUATAN[m.id_subsls]) +
         '</div>' +
         '<div class="pills">' + pills + '</div>' +
       '</div>' +
       '<div class="card-aside"><span class="updated">' + updated + '</span><span class="chev-c">▾</span></div>' +
     '</button>' +
     '<div class="card-form">' +
+      muatanHtml(MUATAN[m.id_subsls]) +
       '<div class="num-grid">' +
         numField('open', lap.open) + numField('submit', lap.submit) +
         numField('reject', lap.reject) + numField('approved', lap.approved) +
@@ -643,6 +719,30 @@ function cardHtml(m) {
     '</div>' +
   '</article>';
 }
+// Panel hasil sistem (read-only) di dalam form — sumber: dashboard Monitoring SE2026
+function muatanHtml(mu) {
+  var note = MUATAN_INFO ? '<div class="mu-note">Data sistem per ' + esc(MUATAN_INFO) + '</div>' : '';
+  if (!mu) {
+    return '<div class="muatan"><div class="mu-head">◈ Hasil Sistem</div>' +
+      '<div class="mu-empty">Belum ada data sistem untuk subSLS ini.</div>' + note + '</div>';
+  }
+  return '<div class="muatan"><div class="mu-head">◈ Hasil Sistem — Monitoring SE2026</div>' +
+    '<div class="mu-grid">' +
+      muCell('Keluarga', mu.jml_keluarga) +
+      muCell('Keluarga lainnya', mu.keluarga_lainnya) +
+      muCell('Usaha', mu.jml_usaha) +
+      muCell('Usaha lainnya', mu.usaha_lainnya) +
+    '</div>' + note + '</div>';
+}
+function muCell(label, val) {
+  return '<div class="mu-cell"><span class="k">' + label + '</span><span class="v">' + fmt(val || 0) + '</span></div>';
+}
+// Ringkasan hasil sistem pada kartu tertutup
+function muatanRingkas(mu) {
+  if (!mu) return '';
+  return '<span><b>Sistem</b> ' + fmt(mu.jml_keluarga || 0) + ' kel · ' + fmt(mu.jml_usaha || 0) + ' usaha</span>';
+}
+
 function numField(k, v) {
   return '<div class="num-field">' +
     '<label><span class="dot" style="background:' + STATE_COLORS[k] + '"></span>' + STATE_LABEL[k] + '</label>' +
@@ -866,6 +966,80 @@ var TABS = [
 ];
 var COL_LABEL = { kecamatan:'Kecamatan', desa_kelurahan:'Desa/Kel', sls:'SLS', subsls:'SubSLS', pml:'PML', ppl:'PPL' };
 
+/* --- Filter Dashboard (independen dari filter Pelaporan) --- */
+var DFILTER_ORDER = ['kecamatan', 'desa_kelurahan', 'sls', 'pml', 'ppl'];
+var DSELECT_MAP = { kecamatan:'dKec', desa_kelurahan:'dDesa', sls:'dSls', pml:'dPml', ppl:'dPpl' };
+var DFILTERS = { kecamatan:'', desa_kelurahan:'', sls:'', pml:'', ppl:'' };
+
+function populateDFilters() {
+  DFILTER_ORDER.forEach(function (field) {
+    var sel = document.getElementById(DSELECT_MAP[field]);
+    var seen = {};
+    DASH.master.forEach(function (m) {
+      if (rowMatch(m, DFILTERS, DFILTER_ORDER, field) && m[field]) seen[m[field]] = true;
+    });
+    var opts = Object.keys(seen).sort(function (a, b) { return a.localeCompare(b, 'id', { numeric:true }); });
+    if (DFILTERS[field] && !seen[DFILTERS[field]]) DFILTERS[field] = '';
+    var ph = sel.options[0] ? sel.options[0].textContent : 'Semua';
+    sel.innerHTML = '<option value="">' + ph + '</option>' + opts.map(function (o) {
+      return '<option value="' + esc(o) + '"' + (DFILTERS[field] === o ? ' selected' : '') + '>' + esc(o) + '</option>';
+    }).join('');
+    sel.value = DFILTERS[field];
+  });
+  var n = DFILTER_ORDER.filter(function (f) { return DFILTERS[f]; }).length;
+  var badge = document.getElementById('dFilterCount');
+  badge.style.display = n ? 'inline-block' : 'none';
+  badge.textContent = n + ' aktif';
+}
+
+// Baris master sesuai filter dashboard — dasar SEMUA elemen dashboard
+function dashRows() {
+  return DASH.master.filter(function (m) { return rowMatch(m, DFILTERS, DFILTER_ORDER, null); });
+}
+
+function saveDFilters() {
+  try { localStorage.setItem(LS.dfilters, JSON.stringify(DFILTERS)); } catch (e) {}
+}
+function loadDFilters() {
+  try {
+    var s = JSON.parse(localStorage.getItem(LS.dfilters) || '{}');
+    DFILTER_ORDER.forEach(function (f) { if (s[f] != null) DFILTERS[f] = s[f]; });
+  } catch (e) {}
+}
+
+DFILTER_ORDER.forEach(function (field) {
+  document.getElementById(DSELECT_MAP[field]).addEventListener('change', function () {
+    DFILTERS[field] = this.value;
+    // Reset turunan geografis bila induk berubah
+    if (field === 'kecamatan') { DFILTERS.desa_kelurahan = ''; DFILTERS.sls = ''; }
+    if (field === 'desa_kelurahan') { DFILTERS.sls = ''; }
+    saveDFilters();
+    if (DASH) renderDashboard();
+  });
+});
+document.getElementById('dBtnReset').addEventListener('click', function () {
+  DFILTER_ORDER.forEach(function (f) { DFILTERS[f] = ''; });
+  saveDFilters();
+  if (DASH) renderDashboard();
+});
+document.getElementById('dFilterToggle').addEventListener('click', function () {
+  var c = document.getElementById('dFilterCard');
+  var open = c.classList.toggle('open');
+  this.setAttribute('aria-expanded', open ? 'true' : 'false');
+});
+
+// Keterangan cakupan filter aktif
+function renderScopeNote() {
+  var el = document.getElementById('scopeNote');
+  var parts = [];
+  DFILTER_ORDER.forEach(function (f) {
+    if (DFILTERS[f]) parts.push((COL_LABEL[f] || f) + ': <b>' + esc(DFILTERS[f]) + '</b>');
+  });
+  if (!parts.length) { el.classList.remove('on'); el.innerHTML = ''; return; }
+  el.classList.add('on');
+  el.innerHTML = 'Cakupan: ' + fmt(dashRows().length) + ' subSLS — ' + parts.join(' · ');
+}
+
 function loadDashboard(force) {
   if (DASH && !force) { renderDashboard(); return; }
   loading(true);
@@ -878,15 +1052,67 @@ function loadDashboard(force) {
 }
 
 function renderDashboard() {
+  populateDFilters();
+  renderScopeNote();
   renderKpi();
+  renderSysKpi();
   renderCharts();
   renderTabs();
   renderTable();
 }
 
+// Total hasil sistem untuk sekumpulan baris master
+function sysSums(rows) {
+  var mu = DASH.muatan || {}, s = { kel:0, kellain:0, ush:0, ushlain:0 };
+  rows.forEach(function (m) {
+    var x = mu[m.id_subsls];
+    if (x) {
+      s.kel += x.jml_keluarga || 0; s.kellain += x.keluarga_lainnya || 0;
+      s.ush += x.jml_usaha || 0;    s.ushlain += x.usaha_lainnya || 0;
+    }
+  });
+  return s;
+}
+
+// KPI hasil sistem (mengikuti filter)
+function renderSysKpi() {
+  var s = sysSums(dashRows());
+  var totKel = s.kel + s.kellain, totUsh = s.ush + s.ushlain;
+  var pKel = totKel ? Math.round(s.kellain / totKel * 100) : 0;
+  var pUsh = totUsh ? Math.round(s.ushlain / totUsh * 100) : 0;
+  var tiles = [
+    { lbl:'Keluarga', val: fmt(s.kel), sub:'Aktif terdata', cls:'' },
+    { lbl:'Kel. Lainnya', val: fmt(s.kellain), sub: pKel + '% dari total keluarga', cls:'warn' },
+    { lbl:'Usaha', val: fmt(s.ush), sub:'Aktif terdata', cls:'' },
+    { lbl:'Usaha Lainnya', val: fmt(s.ushlain), sub: pUsh + '% dari total usaha', cls:'warn' }
+  ];
+  document.getElementById('sysKpi').innerHTML = tiles.map(function (t) {
+    return '<div class="kpi ' + t.cls + '"><div class="lbl">' + t.lbl + '</div>' +
+      '<div class="val tnum">' + t.val + '</div><div class="sub">' + t.sub + '</div></div>';
+  }).join('');
+}
+
+// Level agregasi grafik wilayah mengikuti kedalaman filter (drill-down)
+function sysLevel() {
+  if (!DFILTERS.kecamatan) return { key:'kecamatan', label:'Kecamatan' };
+  if (!DFILTERS.desa_kelurahan) return { key:'desa_kelurahan', label:'Desa/Kelurahan' };
+  if (!DFILTERS.sls) return { key:'sls', label:'SLS' };
+  return { key:'subsls', label:'SubSLS' };
+}
+
+// Palet hasil sistem: hue = jenis entitas, terang/gelap = kondisi
+function sysColors() {
+  var d = document.documentElement.getAttribute('data-theme');
+  var dark = d ? d === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+  return dark
+    ? { kel:'#3987e5', kelLain:'#9ec5f4', ush:'#199e70', ushLain:'#8ed9bd', aktif:'#3987e5', lain:'#d95926' }
+    : { kel:'#2a78d6', kelLain:'#9ec5f4', ush:'#1baf7a', ushLain:'#8ed9bd', aktif:'#2a78d6', lain:'#eb6834' };
+}
+
 function renderKpi() {
-  var total = DASH.master.length;
-  var lapor = DASH.master.filter(function (m) {
+  var rows = dashRows();
+  var total = rows.length;
+  var lapor = rows.filter(function (m) {
     var l = DASH.laporan[m.id_subsls]; return l && l.updated_at;
   }).length;
   var belum = total - lapor;
@@ -914,10 +1140,15 @@ function renderCharts() {
   Chart.defaults.font.family = 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
   Chart.defaults.font.size = 12;
 
+  // Cakupan aktif: semua grafik mengikuti filter dashboard
+  var rows = dashRows();
+  var inScope = {};
+  rows.forEach(function (m) { inScope[m.id_subsls] = true; });
+
   // ---- Grafik progres (harian bar + kumulatif line) ----
   var byDate = {};
   DASH.riwayat.forEach(function (r) {
-    if (!r.tanggal) return;
+    if (!r.tanggal || !inScope[r.id_subsls]) return;
     if (!byDate[r.tanggal]) byDate[r.tanggal] = {};
     byDate[r.tanggal][r.id_subsls] = true;
   });
@@ -928,7 +1159,7 @@ function renderCharts() {
     Object.keys(byDate[d]).forEach(function (id) { seenCum[id] = true; });
     kumulatif.push(Object.keys(seenCum).length);
   });
-  var totalSub = DASH.master.length;
+  var totalSub = rows.length;
   var labels = dates.map(function (d) { return d.slice(5); }); // MM-dd
 
   if (charts.progres) charts.progres.destroy();
@@ -954,8 +1185,9 @@ function renderCharts() {
 
   // ---- Grafik rekap status (donut) ----
   var sums = { open:0, submit:0, reject:0, approved:0 };
-  Object.keys(DASH.laporan).forEach(function (id) {
-    var l = DASH.laporan[id];
+  rows.forEach(function (m) {
+    var l = DASH.laporan[m.id_subsls];
+    if (!l) return;
     sums.open += l.open || 0; sums.submit += l.submit || 0;
     sums.reject += l.reject || 0; sums.approved += l.approved || 0;
   });
@@ -982,6 +1214,93 @@ function renderCharts() {
       }
     },
     plugins: [centerText(totalDok, ink2, muted)]
+  });
+
+  // ---- Komposisi hasil sistem: aktif vs kasus lainnya ----
+  var SC = sysColors();
+  var ss = sysSums(rows);
+  var totKel = ss.kel + ss.kellain, totUsh = ss.ush + ss.ushlain;
+  if (charts.komposisi) charts.komposisi.destroy();
+  charts.komposisi = new Chart(document.getElementById('chartKomposisi'), {
+    type: 'bar',
+    data: {
+      labels: ['Keluarga', 'Usaha'],
+      datasets: [
+        { label:'Aktif terdata', data:[ss.kel, ss.ush], backgroundColor: SC.aktif,
+          borderColor: surface, borderWidth: 2, borderRadius: 4, barThickness: 28 },
+        { label:'Lainnya', data:[ss.kellain, ss.ushlain], backgroundColor: SC.lain,
+          borderColor: surface, borderWidth: 2, borderRadius: 4, barThickness: 28 }
+      ]
+    },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position:'top', align:'end', labels:{ color:ink2, usePointStyle:true, pointStyle:'circle', boxWidth:8, padding:12, font:{ size:12 } } },
+        tooltip: { callbacks: { label: function (c) {
+          var tot = c.dataIndex === 0 ? totKel : totUsh;
+          var p = tot ? Math.round(c.parsed.x / tot * 100) : 0;
+          return '  ' + c.dataset.label + ': ' + fmt(c.parsed.x) + ' (' + p + '%)';
+        } } }
+      },
+      scales: {
+        x: { stacked:true, beginAtZero:true, grid:{ color:grid }, ticks:{ color:muted } },
+        y: { stacked:true, grid:{ display:false }, ticks:{ color:ink2, font:{ weight:'700' } } }
+      }
+    }
+  });
+
+  // ---- Hasil sistem per wilayah (2 stack: keluarga & usaha) ----
+  var lvl = sysLevel();
+  var grp = {};
+  rows.forEach(function (m) {
+    var k = m[lvl.key] || '(kosong)';
+    if (!grp[k]) grp[k] = { kel:0, kellain:0, ush:0, ushlain:0 };
+    var x = (DASH.muatan || {})[m.id_subsls];
+    if (x) {
+      grp[k].kel += x.jml_keluarga || 0; grp[k].kellain += x.keluarga_lainnya || 0;
+      grp[k].ush += x.jml_usaha || 0;    grp[k].ushlain += x.usaha_lainnya || 0;
+    }
+  });
+  var arr = Object.keys(grp).map(function (k) {
+    var v = grp[k];
+    return { name:k, kel:v.kel, kellain:v.kellain, ush:v.ush, ushlain:v.ushlain,
+             tot: v.kel + v.kellain + v.ush + v.ushlain };
+  }).sort(function (a, b) { return b.tot - a.tot; });
+
+  var MAXB = 12;
+  var shown = arr.slice(0, MAXB);
+  document.getElementById('sysWilayahTitle').textContent = 'Hasil Sistem per ' + lvl.label;
+  document.getElementById('sysWilayahCap').innerHTML = 'Keluarga &amp; usaha terdata, diurutkan dari terbanyak' +
+    (arr.length > MAXB ? ' — <b>' + MAXB + ' teratas</b> dari ' + fmt(arr.length) : '') + '.';
+  document.getElementById('sysWilayahWrap').style.height = Math.max(170, shown.length * 34 + 70) + 'px';
+
+  if (charts.sistem) charts.sistem.destroy();
+  charts.sistem = new Chart(document.getElementById('chartSistem'), {
+    type: 'bar',
+    data: {
+      labels: shown.map(function (r) { return r.name; }),
+      datasets: [
+        { label:'Keluarga', data: shown.map(function (r) { return r.kel; }), stack:'kel',
+          backgroundColor: SC.kel, borderColor: surface, borderWidth: 2 },
+        { label:'Kel. Lainnya', data: shown.map(function (r) { return r.kellain; }), stack:'kel',
+          backgroundColor: SC.kelLain, borderColor: surface, borderWidth: 2 },
+        { label:'Usaha', data: shown.map(function (r) { return r.ush; }), stack:'ush',
+          backgroundColor: SC.ush, borderColor: surface, borderWidth: 2 },
+        { label:'Usaha Lainnya', data: shown.map(function (r) { return r.ushlain; }), stack:'ush',
+          backgroundColor: SC.ushLain, borderColor: surface, borderWidth: 2 }
+      ]
+    },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position:'top', align:'end', labels:{ color:ink2, usePointStyle:true, pointStyle:'circle', boxWidth:8, padding:10, font:{ size:11.5 } } },
+        tooltip: { callbacks: { label: function (c) { return '  ' + c.dataset.label + ': ' + fmt(c.parsed.x); } } }
+      },
+      scales: {
+        x: { stacked:true, beginAtZero:true, grid:{ color:grid }, ticks:{ color:muted } },
+        y: { stacked:true, grid:{ display:false }, ticks:{ color:ink2, font:{ size:11.5 }, autoSkip:false } }
+      }
+    }
   });
 }
 
@@ -1036,10 +1355,11 @@ function renderTabs() {
 
 function aggregate(tab) {
   var groups = {};
-  DASH.master.forEach(function (m) {
+  dashRows().forEach(function (m) {   // ikut filter dashboard
     var key = tab.group.map(function (g) { return m[g]; }).join('¦');
     if (!groups[key]) {
-      groups[key] = { count:0, open:0, submit:0, reject:0, approved:0, cols:{} };
+      groups[key] = { count:0, open:0, submit:0, reject:0, approved:0,
+                      s_kel:0, s_kellain:0, s_ush:0, s_ushlain:0, cols:{} };
       tab.cols.forEach(function (c) { groups[key].cols[c] = {}; });
     }
     var g = groups[key];
@@ -1047,11 +1367,17 @@ function aggregate(tab) {
     tab.cols.forEach(function (c) { if (m[c]) g.cols[c][m[c]] = true; });
     var l = DASH.laporan[m.id_subsls];
     if (l) { g.open += l.open||0; g.submit += l.submit||0; g.reject += l.reject||0; g.approved += l.approved||0; }
+    var mu = (DASH.muatan || {})[m.id_subsls];   // hasil sistem monitoring
+    if (mu) {
+      g.s_kel += mu.jml_keluarga||0; g.s_kellain += mu.keluarga_lainnya||0;
+      g.s_ush += mu.jml_usaha||0;    g.s_ushlain += mu.usaha_lainnya||0;
+    }
   });
   return Object.keys(groups).map(function (k) {
     var g = groups[k];
     var row = { _count: g.count, open:g.open, submit:g.submit, reject:g.reject, approved:g.approved,
-                total: g.open + g.submit + g.reject + g.approved };
+                total: g.open + g.submit + g.reject + g.approved,
+                s_kel:g.s_kel, s_kellain:g.s_kellain, s_ush:g.s_ush, s_ushlain:g.s_ushlain };
     tab.cols.forEach(function (c) {
       var vals = Object.keys(g.cols[c]);
       row[c] = vals.length ? vals.sort(function(a,b){return a.localeCompare(b,'id',{numeric:true});}).join(', ') : '-';
@@ -1073,13 +1399,18 @@ function renderTable() {
   }
 
   var idCols = tab.cols; // kolom identitas
+  // grp: '' = kolom berdiri sendiri; selain itu dikelompokkan di header baris pertama
   var numCols = [
-    { k:'_count', label:'Jml SubSLS', dot:null },
-    { k:'open', label:'Open', dot:STATE_COLORS.open },
-    { k:'submit', label:'Submit', dot:STATE_COLORS.submit },
-    { k:'reject', label:'Reject', dot:STATE_COLORS.reject },
-    { k:'approved', label:'Approved', dot:STATE_COLORS.approved },
-    { k:'total', label:'Total', dot:null }
+    { k:'_count', label:'Jml SubSLS', dot:null, grp:'' },
+    { k:'open', label:'Open', dot:STATE_COLORS.open, grp:'Lapor Petugas' },
+    { k:'submit', label:'Submit', dot:STATE_COLORS.submit, grp:'Lapor Petugas' },
+    { k:'reject', label:'Reject', dot:STATE_COLORS.reject, grp:'Lapor Petugas' },
+    { k:'approved', label:'Approved', dot:STATE_COLORS.approved, grp:'Lapor Petugas' },
+    { k:'total', label:'Total', dot:null, grp:'Lapor Petugas' },
+    { k:'s_kel', label:'Keluarga', dot:null, grp:'Hasil Sistem', sys:true },
+    { k:'s_kellain', label:'Kel. Lainnya', dot:null, grp:'Hasil Sistem', sys:true },
+    { k:'s_ush', label:'Usaha', dot:null, grp:'Hasil Sistem', sys:true },
+    { k:'s_ushlain', label:'Usaha Lainnya', dot:null, grp:'Hasil Sistem', sys:true }
   ];
 
   if (!rows.length) {
@@ -1087,12 +1418,23 @@ function renderTable() {
     return;
   }
 
-  var thead = '<tr>' +
-    idCols.map(function (c, i) {
-      return '<th class="idc' + (i === 0 ? ' stick' : '') + '">' + (COL_LABEL[c] || c) + '</th>';
-    }).join('') +
-    numCols.map(function (n) { return '<th>' + n.label + '</th>'; }).join('') +
-    '</tr>';
+  // ---- Header 2 baris: identitas rowspan, kolom angka dikelompokkan ----
+  var head1 = idCols.map(function (c, i) {
+    return '<th rowspan="2" class="idc' + (i === 0 ? ' stick' : '') + '">' + (COL_LABEL[c] || c) + '</th>';
+  }).join('');
+  var head2 = '';
+  for (var i = 0; i < numCols.length; ) {
+    var n = numCols[i];
+    if (!n.grp) { head1 += '<th rowspan="2">' + n.label + '</th>'; i++; continue; }
+    var j = i;
+    while (j < numCols.length && numCols[j].grp === n.grp) j++;
+    head1 += '<th colspan="' + (j - i) + '" class="grp' + (n.sys ? ' sysc' : '') + '">' + n.grp + '</th>';
+    for (var q2 = i; q2 < j; q2++) {
+      head2 += '<th' + (numCols[q2].sys ? ' class="sysc"' : '') + '>' + numCols[q2].label + '</th>';
+    }
+    i = j;
+  }
+  var thead = '<tr>' + head1 + '</tr><tr>' + head2 + '</tr>';
 
   var tbody = rows.map(function (r) {
     return '<tr>' +
@@ -1101,20 +1443,22 @@ function renderTable() {
       }).join('') +
       numCols.map(function (n) {
         var v = fmt(r[n.k]);
-        if (n.dot) return '<td class="num"><span class="mini"><span class="dot" style="background:' + n.dot + '"></span>' + v + '</span></td>';
-        return '<td class="num"><b style="color:var(--ink)">' + v + '</b></td>';
+        var cls = 'num' + (n.sys ? ' sysc' : '');
+        if (n.dot) return '<td class="' + cls + '"><span class="mini"><span class="dot" style="background:' + n.dot + '"></span>' + v + '</span></td>';
+        return '<td class="' + cls + '"><b style="color:var(--ink)">' + v + '</b></td>';
       }).join('') +
     '</tr>';
   }).join('');
 
   // Footer total
-  var tot = { _count:0, open:0, submit:0, reject:0, approved:0, total:0 };
-  rows.forEach(function (r) { numCols.forEach(function (n) { tot[n.k] += r[n.k]; }); });
+  var tot = {};
+  numCols.forEach(function (n) { tot[n.k] = 0; });
+  rows.forEach(function (r) { numCols.forEach(function (n) { tot[n.k] += r[n.k] || 0; }); });
   var tfoot = '<tr>' +
     idCols.map(function (c, i) {
       return '<td class="' + (i === 0 ? 'stick' : '') + '">' + (i === 0 ? 'TOTAL' : '') + '</td>';
     }).join('') +
-    numCols.map(function (n) { return '<td>' + fmt(tot[n.k]) + '</td>'; }).join('') +
+    numCols.map(function (n) { return '<td' + (n.sys ? ' class="sysc"' : '') + '>' + fmt(tot[n.k]) + '</td>'; }).join('') +
   '</tr>';
 
   document.getElementById('tableScroll').innerHTML =
@@ -1131,6 +1475,7 @@ document.getElementById('tblSearch').addEventListener('input', function () {
 ===================================================================== */
 function boot() {
   loadFilters();
+  loadDFilters();
   // Prime dari cache master agar filter tampil cepat
   try {
     var cached = JSON.parse(localStorage.getItem(LS.master) || 'null');
@@ -1141,6 +1486,8 @@ function boot() {
   server('getReportingData').then(function (d) {
     MASTER = d.master || [];
     LAPORAN = d.laporan || {};
+    MUATAN = d.muatan || {};
+    MUATAN_INFO = d.muatan_updated || '';
     try { localStorage.setItem(LS.master, JSON.stringify(MASTER)); } catch (e) {}
     if (!MASTER.length) {
       document.getElementById('cardList').innerHTML =
