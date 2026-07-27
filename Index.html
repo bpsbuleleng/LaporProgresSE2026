@@ -160,6 +160,14 @@
   .btn:disabled { opacity: .55; pointer-events: none; }
   .btn.block { width: 100%; }
 
+  /* Segmented control status pelaporan */
+  .seg { display: flex; gap: 6px; margin: 0 0 12px; }
+  .seg-btn { flex: 1; min-height: 40px; padding: 0 8px; border: 1px solid var(--border); background: var(--surface); color: var(--ink-2); border-radius: 11px; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+  .seg-btn:active { transform: scale(.98); }
+  .seg-btn.active { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); box-shadow: var(--shadow); }
+  .seg-n { font-size: 11px; font-weight: 800; padding: 1px 7px; border-radius: 999px; background: var(--surface-2); color: var(--ink-2); font-variant-numeric: tabular-nums; }
+  .seg-n.warn { background: var(--st-open-bg); color: var(--st-open); }
+  .seg-btn.active .seg-n, .seg-btn.active .seg-n.warn { background: rgba(255,255,255,.22); color: var(--accent-ink); }
   .result-meta { display: flex; align-items: baseline; justify-content: space-between; margin: 2px 2px 10px; }
   .result-meta b { font-size: 15px; }
   .result-meta span { font-size: 12.5px; color: var(--muted); }
@@ -230,6 +238,24 @@
   .lightbox .lb-close { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 12px); right: 14px; width: 44px; height: 44px; border-radius: 50%; border: 0; background: rgba(255,255,255,.16); color: #fff; font-size: 20px; backdrop-filter: blur(6px); }
   .lightbox .lb-hint { position: absolute; bottom: calc(env(safe-area-inset-bottom, 0px) + 16px); left: 0; right: 0; text-align: center; color: rgba(255,255,255,.7); font-size: 12px; }
   .lightbox .lb-spin { position: absolute; color: rgba(255,255,255,.8); font-size: 13px; }
+
+  /* Modal konfirmasi export */
+  .modal-overlay { position: fixed; inset: 0; z-index: 82; display: none; background: rgba(6,12,20,.55); padding: 16px; }
+  .modal-overlay.on { display: grid; place-items: center; animation: fade .2s ease; }
+  .modal-card { width: min(94vw, 380px); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 18px; }
+  .modal-card h3 { font-size: 16px; letter-spacing: -.2px; }
+  .modal-desc { font-size: 13.5px; color: var(--ink-2); margin: 8px 0 0; line-height: 1.5; }
+  .toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 15px; padding: 11px 12px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); }
+  .toggle-row span.tr-lbl { font-size: 13.5px; font-weight: 600; }
+  .toggle { position: relative; width: 42px; height: 25px; flex: none; }
+  .toggle input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; z-index: 1; }
+  .toggle-track { position: absolute; inset: 0; background: var(--border); border-radius: 999px; transition: background .18s; }
+  .toggle-thumb { position: absolute; top: 3px; left: 3px; width: 19px; height: 19px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.35); transition: transform .18s; }
+  .toggle input:checked + .toggle-track { background: var(--accent); }
+  .toggle input:checked + .toggle-track .toggle-thumb { transform: translateX(17px); }
+  .modal-hint { font-size: 11.5px; color: var(--muted); margin: 8px 2px 0; line-height: 1.45; }
+  .modal-link { display: block; font-size: 12px; margin-top: 6px; word-break: break-all; }
+  .modal-actions { display: flex; gap: 10px; margin-top: 17px; }
 
   /* ============ Dashboard ============ */
   .kpi-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 11px; margin-bottom: 16px; }
@@ -374,10 +400,17 @@
     </div>
   </div>
 
+  <div class="seg" id="statusSeg">
+    <button class="seg-btn active" data-status="all" type="button">Semua <span class="seg-n" id="segAll">0</span></button>
+    <button class="seg-btn" data-status="belum" type="button">Belum lapor <span class="seg-n warn" id="segBelum">0</span></button>
+    <button class="seg-btn" data-status="sudah" type="button">Sudah lapor <span class="seg-n" id="segSudah">0</span></button>
+  </div>
+
   <div class="result-meta">
     <b id="resCount">—</b>
     <span id="resNote"></span>
   </div>
+  <button class="btn ghost block" id="btnExport" type="button" style="margin-bottom:12px">⇩ Export ke Excel</button>
   <div id="cardList"></div>
 </main>
 
@@ -452,8 +485,13 @@
 
   <div class="table-card">
     <div class="tc-head">
-      <h3 style="font-size:15px">Tabel Rekap</h3>
-      <p class="cap" style="margin:3px 0 0">Agregasi menurut level. Geser tabel untuk melihat semua kolom.</p>
+      <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:10px">
+        <div>
+          <h3 style="font-size:15px">Tabel Rekap</h3>
+          <p class="cap" style="margin:3px 0 0">Agregasi menurut level. Geser tabel untuk melihat semua kolom.</p>
+        </div>
+        <button class="btn ghost sm" id="btnExportDash" type="button" style="flex:none">⇩ Excel</button>
+      </div>
     </div>
     <div class="tabs" id="tabs"></div>
     <div class="search-row">
@@ -478,9 +516,31 @@
   <div class="lb-hint">Ketuk di luar gambar untuk menutup</div>
 </div>
 
+
+<!-- Modal konfirmasi export Excel -->
+<div class="modal-overlay" id="exportModal" role="dialog" aria-label="Konfirmasi export Excel">
+  <div class="modal-card">
+    <h3 id="exportTitle">Export ke Excel</h3>
+    <p class="modal-desc" id="exportDesc"></p>
+    <label class="toggle-row" for="exportPhotoToggle">
+      <span class="tr-lbl">Sertakan link foto bukti dukung</span>
+      <span class="toggle">
+        <input type="checkbox" id="exportPhotoToggle" checked>
+        <span class="toggle-track"><span class="toggle-thumb"></span></span>
+      </span>
+    </label>
+    <p class="modal-hint" id="exportPhotoHint"></p>
+    <div class="modal-actions">
+      <button class="btn ghost block" id="exportCancel" type="button">Batal</button>
+      <button class="btn primary block" id="exportConfirm" type="button">⇩ Export</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast-wrap" id="toastWrap"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
 /* =====================================================================
    State & util
@@ -490,12 +550,13 @@ var LAPORAN = {};             // map id_subsls -> {open,submit,reject,approved,u
 var MUATAN = {};              // map id_subsls -> {jml_keluarga,keluarga_lainnya,jml_usaha,usaha_lainnya}
 var MUATAN_INFO = '';         // keterangan tanggal data sistem
 var FILTERS = { kecamatan:'', desa_kelurahan:'', sls:'', subsls:'', pml:'', ppl:'' };
+var STATUS = 'all';           // filter status: all | belum | sudah
 var DASH = null;              // cache data dashboard
 var charts = { progres: null, rekap: null, komposisi: null, sistem: null };
 var currentTab = 'kecamatan';
 
 var LS = {
-  master: 'se26_master', filters: 'se26_filters', theme: 'se26_theme', dfilters: 'se26_dfilters'
+  master: 'se26_master', filters: 'se26_filters', theme: 'se26_theme', dfilters: 'se26_dfilters', status: 'se26_status'
 };
 var STATE_COLORS = { open:'#e8912b', submit:'#3b82c4', reject:'#d64545', approved:'#1e9e57' };
 var STATE_LABEL  = { open:'Open', submit:'Submit', reject:'Reject', approved:'Approved' };
@@ -634,6 +695,16 @@ document.getElementById('filterToggle').addEventListener('click', function () {
   this.setAttribute('aria-expanded', open ? 'true' : 'false');
 });
 
+// Segmented control status (Semua / Belum / Sudah)
+document.querySelectorAll('#statusSeg .seg-btn').forEach(function (b) {
+  b.addEventListener('click', function () {
+    STATUS = b.dataset.status;
+    applyStatusUI();
+    try { localStorage.setItem(LS.status, STATUS); } catch (e) {}
+    renderCards();
+  });
+});
+
 function saveFilters() {
   try { localStorage.setItem(LS.filters, JSON.stringify(FILTERS)); } catch (e) {}
 }
@@ -644,17 +715,45 @@ function loadFilters() {
   } catch (e) {}
 }
 
-// Render daftar kartu subSLS
+// Sudah dilaporkan bila ada baris laporan dgn updated_at
+function isReported(m) { var l = LAPORAN[m.id_subsls]; return !!(l && l.updated_at); }
+
+// Baris master sesuai filter wilayah/petugas + hitungan status
+function statusCounts() {
+  var geo = MASTER.filter(function (m) { return masterMatch(m, null); });
+  var sudah = geo.filter(isReported).length;
+  return { geo: geo, all: geo.length, sudah: sudah, belum: geo.length - sudah };
+}
+// Perbarui angka pada 3 tombol status
+function updateStatusCounts() {
+  var c = statusCounts();
+  document.getElementById('segAll').textContent = fmt(c.all);
+  document.getElementById('segBelum').textContent = fmt(c.belum);
+  document.getElementById('segSudah').textContent = fmt(c.sudah);
+  return c;
+}
+
+// Render daftar kartu subSLS (filter wilayah + filter status)
 function renderCards() {
   var list = document.getElementById('cardList');
-  var rows = MASTER.filter(function (m) { return masterMatch(m, null); });
+  var c = updateStatusCounts();
+  var rows = STATUS === 'belum' ? c.geo.filter(function (m) { return !isReported(m); })
+           : STATUS === 'sudah' ? c.geo.filter(isReported)
+           : c.geo;
 
-  document.getElementById('resCount').textContent = rows.length + ' subSLS';
-  var lapor = rows.filter(function (m) { return LAPORAN[m.id_subsls] && LAPORAN[m.id_subsls].updated_at; }).length;
-  document.getElementById('resNote').textContent = lapor + ' sudah dilaporkan';
+  document.getElementById('resCount').textContent = fmt(rows.length) + ' subSLS';
+  document.getElementById('resNote').textContent =
+    STATUS === 'belum' ? 'belum dilaporkan' :
+    STATUS === 'sudah' ? 'sudah dilaporkan' :
+    (fmt(c.belum) + ' belum · ' + fmt(c.sudah) + ' sudah');
 
   if (!rows.length) {
-    list.innerHTML = '<div class="empty-state"><div class="es-ic">◍</div><p>Tidak ada subSLS pada filter ini.</p></div>';
+    var msg = STATUS === 'belum' && c.all
+      ? '<div class="es-ic">✓</div><p>Semua subSLS pada filter ini <b>sudah dilaporkan</b>.</p>'
+      : STATUS === 'sudah'
+      ? '<div class="es-ic">◍</div><p>Belum ada subSLS yang dilaporkan pada filter ini.</p>'
+      : '<div class="es-ic">◍</div><p>Tidak ada subSLS pada filter ini.</p>';
+    list.innerHTML = '<div class="empty-state">' + msg + '</div>';
     return;
   }
   var MAX = 400;
@@ -662,10 +761,34 @@ function renderCards() {
   list.innerHTML = shown.map(cardHtml).join('');
   if (rows.length > MAX) {
     list.insertAdjacentHTML('beforeend',
-      '<div class="empty-state" style="padding:16px"><p>Menampilkan ' + MAX + ' dari ' + rows.length +
+      '<div class="empty-state" style="padding:16px"><p>Menampilkan ' + MAX + ' dari ' + fmt(rows.length) +
       ' subSLS. Persempit filter untuk melihat sisanya.</p></div>');
   }
   bindCards();
+}
+
+// Setelah simpan: perbarui hitungan; buang kartu dari daftar "belum" bila sudah lapor
+function afterSave(card, id) {
+  var c = updateStatusCounts();
+  if (STATUS === 'belum') {
+    card.remove();
+    var n = document.querySelectorAll('#cardList .card').length;
+    document.getElementById('resCount').textContent = fmt(n) + ' subSLS';
+    if (!n) renderCards(); // tampilkan empty-state "semua sudah dilaporkan"
+  } else {
+    refreshCard(card, id);
+  }
+  document.getElementById('resNote').textContent =
+    STATUS === 'belum' ? 'belum dilaporkan' :
+    STATUS === 'sudah' ? 'sudah dilaporkan' :
+    (fmt(c.belum) + ' belum · ' + fmt(c.sudah) + ' sudah');
+}
+
+// Terapkan status ke UI (tombol aktif) tanpa render ulang
+function applyStatusUI() {
+  document.querySelectorAll('#statusSeg .seg-btn').forEach(function (b) {
+    b.classList.toggle('active', b.dataset.status === STATUS);
+  });
 }
 
 function cardHtml(m) {
@@ -838,7 +961,7 @@ function saveCard(card, btn) {
     delete PENDING[id];
     toast('Laporan subSLS tersimpan.', 'ok');
     card.classList.remove('open');
-    refreshCard(card, id);
+    afterSave(card, id);
     if (DASH) DASH = null; // paksa muat ulang dashboard
   }).catch(function (e) {
     toast(e && e.message ? e.message : 'Gagal menyimpan laporan.', 'err');
@@ -903,7 +1026,7 @@ document.getElementById('lbClose').addEventListener('click', closeLightbox);
 document.getElementById('lightbox').addEventListener('click', function (e) {
   if (e.target === this || e.target.classList.contains('lb-stage')) closeLightbox();
 });
-document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeLightbox(); });
+document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { closeLightbox(); closeExportModal(); } });
 
 // Lacak kartu aktif sebagai target paste
 document.addEventListener('focusin', function (e) {
@@ -951,6 +1074,101 @@ function compressImage(file, maxW, quality) {
     };
     reader.readAsDataURL(file);
   });
+}
+
+/* =====================================================================
+   Export ke Excel (dipakai halaman Pelaporan & Dashboard)
+===================================================================== */
+var EXPORT_CTX = null;          // 'lapor' | 'dash' — konteks yang sedang dikonfirmasi
+var EXPORT_INCLUDE_PHOTO = true; // status toggle terakhir, dipertahankan antar-modal
+
+// Baris subSLS pada Pelaporan sesuai filter wilayah/petugas + status yang aktif
+function currentReportRows() {
+  var c = statusCounts();
+  return STATUS === 'belum' ? c.geo.filter(function (m) { return !isReported(m); })
+       : STATUS === 'sudah' ? c.geo.filter(isReported)
+       : c.geo;
+}
+
+function openExportModal(ctx) {
+  if (ctx === 'dash' && !DASH) { toast('Muat dashboard terlebih dahulu.', 'err'); return; }
+  EXPORT_CTX = ctx;
+  document.getElementById('exportPhotoToggle').checked = EXPORT_INCLUDE_PHOTO;
+  var descEl = document.getElementById('exportDesc');
+  var hintEl = document.getElementById('exportPhotoHint');
+
+  if (ctx === 'lapor') {
+    var rows = currentReportRows();
+    document.getElementById('exportTitle').textContent = 'Export Daftar Pelaporan';
+    descEl.innerHTML = 'Sebanyak <b>' + fmt(rows.length) + ' subSLS</b> akan diekspor ke Excel, sesuai filter wilayah/petugas dan status (<b>' +
+      (STATUS === 'belum' ? 'Belum lapor' : STATUS === 'sudah' ? 'Sudah lapor' : 'Semua') + '</b>) yang sedang aktif.';
+    hintEl.textContent = 'Kolom "Link Foto Bukti Dukung" berisi URL foto Fasih Mobile tiap subSLS yang sudah melampirkan foto.';
+  } else {
+    var d = currentDashRows();
+    document.getElementById('exportTitle').textContent = 'Export Rekap Dashboard';
+    descEl.innerHTML = 'Sebanyak <b>' + fmt(d.rows.length) + ' baris</b> (level <b>' + d.tab.label + '</b>) akan diekspor ke Excel, sesuai filter dashboard yang sedang aktif.';
+    hintEl.textContent = d.tab.key === 'subsls'
+      ? 'Kolom "Link Foto Bukti Dukung" berisi URL foto tiap subSLS.'
+      : 'Karena satu baris merangkum beberapa subSLS, kolom "Link Foto Bukti Dukung" dapat memuat beberapa tautan (dipisah baris baru).';
+  }
+  document.getElementById('exportModal').classList.add('on');
+}
+function closeExportModal() { document.getElementById('exportModal').classList.remove('on'); }
+
+document.getElementById('btnExport').addEventListener('click', function () { openExportModal('lapor'); });
+document.getElementById('btnExportDash').addEventListener('click', function () { openExportModal('dash'); });
+document.getElementById('exportCancel').addEventListener('click', closeExportModal);
+document.getElementById('exportModal').addEventListener('click', function (e) { if (e.target === this) closeExportModal(); });
+document.getElementById('exportPhotoToggle').addEventListener('change', function () { EXPORT_INCLUDE_PHOTO = this.checked; });
+document.getElementById('exportConfirm').addEventListener('click', function () {
+  var ctx = EXPORT_CTX;
+  closeExportModal();
+  if (ctx === 'lapor') doExportLaporExcel(EXPORT_INCLUDE_PHOTO);
+  else if (ctx === 'dash') doExportDashExcel(EXPORT_INCLUDE_PHOTO);
+});
+
+// Terapkan lebar kolom otomatis pada worksheet
+function autoCols(ws, header) {
+  ws['!cols'] = header.map(function (h) { return { wch: Math.max(12, String(h).length + 2) }; });
+}
+function excelStamp() { return new Date().toISOString().slice(0, 10); }
+
+function doExportLaporExcel(includePhoto) {
+  var rows = currentReportRows();
+  if (!rows.length) { toast('Tidak ada data untuk diekspor.', 'err'); return; }
+
+  var header = ['Kecamatan', 'Desa/Kelurahan', 'SLS', 'SubSLS', 'PML', 'PPL',
+    'Open', 'Submit', 'Reject', 'Approved', 'Status', 'Terakhir Diperbarui'];
+  if (includePhoto) header.push('Link Foto Bukti Dukung');
+
+  var data = rows.map(function (m) {
+    var lap = LAPORAN[m.id_subsls] || {};
+    var has = !!lap.updated_at;
+    var row = [
+      m.kecamatan || '', m.desa_kelurahan || '', m.sls || '', m.subsls || '', m.pml || '', m.ppl || '',
+      has ? (lap.open || 0) : 0, has ? (lap.submit || 0) : 0, has ? (lap.reject || 0) : 0, has ? (lap.approved || 0) : 0,
+      has ? 'Sudah lapor' : 'Belum lapor', has ? lap.updated_at : ''
+    ];
+    if (includePhoto) row.push(lap.url_foto || '');
+    return row;
+  });
+
+  var ws = XLSX.utils.aoa_to_sheet([header].concat(data));
+  autoCols(ws, header);
+  if (includePhoto) {
+    var col = header.length - 1;
+    data.forEach(function (row, i) {
+      var url = row[col];
+      if (url) {
+        var addr = XLSX.utils.encode_cell({ r: i + 1, c: col });
+        ws[addr].l = { Target: url, Tooltip: 'Buka foto bukti dukung' };
+      }
+    });
+  }
+  var wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Daftar Pelaporan');
+  XLSX.writeFile(wb, 'Daftar_Pelaporan_SE2026_' + excelStamp() + '.xlsx');
+  toast('Export Excel berhasil.', 'ok');
 }
 
 /* =====================================================================
@@ -1375,14 +1593,17 @@ function aggregate(tab) {
     var key = tab.group.map(function (g) { return m[g]; }).join('¦');
     if (!groups[key]) {
       groups[key] = { count:0, open:0, submit:0, reject:0, approved:0,
-                      s_kel:0, s_kellain:0, s_ush:0, s_ushlain:0, cols:{} };
+                      s_kel:0, s_kellain:0, s_ush:0, s_ushlain:0, cols:{}, fotos:{} };
       tab.cols.forEach(function (c) { groups[key].cols[c] = {}; });
     }
     var g = groups[key];
     g.count++;
     tab.cols.forEach(function (c) { var v = colValue(m, c); if (v) g.cols[c][v] = true; });
     var l = DASH.laporan[m.id_subsls];
-    if (l) { g.open += l.open||0; g.submit += l.submit||0; g.reject += l.reject||0; g.approved += l.approved||0; }
+    if (l) {
+      g.open += l.open||0; g.submit += l.submit||0; g.reject += l.reject||0; g.approved += l.approved||0;
+      if (l.url_foto) g.fotos[l.url_foto] = true;   // link bukti dukung, dikumpulkan per grup
+    }
     var mu = (DASH.muatan || {})[m.id_subsls];   // hasil sistem monitoring
     if (mu) {
       g.s_kel += mu.jml_keluarga||0; g.s_kellain += mu.keluarga_lainnya||0;
@@ -1393,7 +1614,8 @@ function aggregate(tab) {
     var g = groups[k];
     var row = { _count: g.count, open:g.open, submit:g.submit, reject:g.reject, approved:g.approved,
                 total: g.open + g.submit + g.reject + g.approved,
-                s_kel:g.s_kel, s_kellain:g.s_kellain, s_ush:g.s_ush, s_ushlain:g.s_ushlain };
+                s_kel:g.s_kel, s_kellain:g.s_kellain, s_ush:g.s_ush, s_ushlain:g.s_ushlain,
+                _fotos: Object.keys(g.fotos) };
     tab.cols.forEach(function (c) {
       var vals = Object.keys(g.cols[c]);
       row[c] = vals.length ? vals.sort(function(a,b){return a.localeCompare(b,'id',{numeric:true});}).join(', ') : '-';
@@ -1404,7 +1626,8 @@ function aggregate(tab) {
   });
 }
 
-function renderTable() {
+// Baris rekap sesuai tab & pencarian yang sedang aktif (dipakai render tabel & export)
+function currentDashRows() {
   var tab = TABS.find(function (t) { return t.key === currentTab; });
   var rows = aggregate(tab);
   var q = (document.getElementById('tblSearch').value || '').toLowerCase().trim();
@@ -1413,7 +1636,12 @@ function renderTable() {
       return tab.cols.some(function (c) { return String(r[c]).toLowerCase().indexOf(q) >= 0; });
     });
   }
+  return { tab: tab, rows: rows };
+}
 
+function renderTable() {
+  var d = currentDashRows();
+  var tab = d.tab, rows = d.rows;
   var idCols = tab.cols; // kolom identitas
   // grp: '' = kolom berdiri sendiri; selain itu dikelompokkan di header baris pertama
   var numCols = [
@@ -1486,12 +1714,51 @@ document.getElementById('tblSearch').addEventListener('input', function () {
   this._t = setTimeout(function () { renderTable(); }, 180);
 });
 
+function doExportDashExcel(includePhoto) {
+  var d = currentDashRows();
+  var tab = d.tab, rows = d.rows;
+  if (!rows.length) { toast('Tidak ada data untuk diekspor.', 'err'); return; }
+
+  var header = tab.cols.map(function (c) { return COL_LABEL[c] || c; })
+    .concat(['Jml SubSLS', 'Open', 'Submit', 'Reject', 'Approved', 'Total',
+             'Keluarga', 'Kel. Lainnya', 'Usaha', 'Usaha Lainnya']);
+  var photoCol = -1;
+  if (includePhoto) { header.push('Link Foto Bukti Dukung'); photoCol = header.length - 1; }
+
+  var data = rows.map(function (r) {
+    var row = tab.cols.map(function (c) { return r[c]; }).concat([
+      r._count, r.open, r.submit, r.reject, r.approved, r.total,
+      r.s_kel, r.s_kellain, r.s_ush, r.s_ushlain
+    ]);
+    if (includePhoto) row.push((r._fotos || []).join('\n'));
+    return row;
+  });
+
+  var ws = XLSX.utils.aoa_to_sheet([header].concat(data));
+  autoCols(ws, header);
+  if (includePhoto) {
+    rows.forEach(function (r, i) {
+      var urls = r._fotos || [];
+      if (urls.length === 1) { // hyperlink hanya bila 1 baris = 1 tautan pasti
+        var addr = XLSX.utils.encode_cell({ r: i + 1, c: photoCol });
+        if (ws[addr]) ws[addr].l = { Target: urls[0], Tooltip: 'Buka foto bukti dukung' };
+      }
+    });
+  }
+  var wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, ('Rekap ' + tab.label).slice(0, 31));
+  XLSX.writeFile(wb, 'Rekap_Dashboard_SE2026_' + tab.key + '_' + excelStamp() + '.xlsx');
+  toast('Export Excel berhasil.', 'ok');
+}
+
 /* =====================================================================
    Bootstrap
 ===================================================================== */
 function boot() {
   loadFilters();
   loadDFilters();
+  try { STATUS = localStorage.getItem(LS.status) || 'all'; } catch (e) {}
+  applyStatusUI();
   // Prime dari cache master agar filter tampil cepat
   try {
     var cached = JSON.parse(localStorage.getItem(LS.master) || 'null');
